@@ -1,0 +1,30 @@
+{
+  "include": ["src/**/*"],
+  "compilerOptions": {
+    "strict": true,
+    "target": "esnext",
+    "lib": ["esnext"],
+    "moduleResolution": "node",
+    "types": [
+      "lua-types/jit",
+      "kui.nvim",
+      "kui.nvim/types/kui",
+      "kui.nvim/types/cairo",
+      "kui.nvim/types/vim"
+    ],
+    "paths": {
+      "kui": ["../node_modules/kui.nvim"]
+    },
+    "baseUrl": "./src",
+    "rootDir": "./src"
+  },
+  "tstl": {
+    "luaTarget": "JIT",
+    "luaBundle": "./lua/kirby.lua",
+    "luaBundleEntry": "./src/index.ts",
+    "noResolvePaths": [
+      "bit",
+      "kui"
+    ]
+  }
+}
