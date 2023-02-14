@@ -3091,11 +3091,11 @@ return ____exports
  end,
 ["index"] = function(...) 
 local ____lualib = require("lualib_bundle")
-local __TS__New = ____lualib.__TS__New
 local __TS__StringTrim = ____lualib.__TS__StringTrim
 local __TS__StringSplit = ____lualib.__TS__StringSplit
 local __TS__ArrayMap = ____lualib.__TS__ArrayMap
 local __TS__ArraySort = ____lualib.__TS__ArraySort
+local __TS__New = ____lualib.__TS__New
 local __TS__ArrayFilter = ____lualib.__TS__ArrayFilter
 local ____exports = {}
 local fzy = require("fzy-lua-native")
@@ -3106,22 +3106,21 @@ local getIcon = ____icons.getIcon
 local ____Selector = require("components.Selector")
 local Selector = ____Selector.Selector
 ____exports.selector = nil
-function ____exports.openFilePicker(self)
-    local ____opt_0 = ____exports.selector
-    if ____opt_0 ~= nil then
-        ____exports.selector:close()
+local fileCommand = vim.fn.executable("fd") ~= 0 and "fd -t f" or "git ls-files"
+function ____exports.openFilePicker(directory)
+    if directory == nil then
+        directory = "."
     end
-    ____exports.selector = __TS__New(Selector)
     local entries = __TS__ArrayMap(
         __TS__StringSplit(
-            __TS__StringTrim(vim.fn.system("git ls-files")),
+            __TS__StringTrim(vim.fn.system((("cd " .. directory) .. " && ") .. fileCommand)),
             "\n"
         ),
         function(____, line)
             local parsed = path:parse(line)
-            local ____getIcon_result_2 = getIcon(nil, parsed.base, parsed.ext)
-            local icon = ____getIcon_result_2.icon
-            local color = ____getIcon_result_2.color
+            local ____getIcon_result_0 = getIcon(nil, parsed.base, parsed.ext)
+            local icon = ____getIcon_result_0.icon
+            local color = ____getIcon_result_0.color
             return {
                 icon = icon,
                 iconColor = color,
@@ -3137,6 +3136,11 @@ function ____exports.openFilePicker(self)
             return #a.text - #b.text
         end
     )
+    local ____opt_1 = ____exports.selector
+    if ____opt_1 ~= nil then
+        ____exports.selector:close()
+    end
+    ____exports.selector = __TS__New(Selector)
     ____exports.selector:setEntries(entries)
     ____exports.selector:onChange(function(____, input)
         local sensitive = input ~= string.lower(input)

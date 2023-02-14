@@ -5,12 +5,15 @@ import { Selector } from './components/Selector'
 
 export let selector: Selector | null = null
 
-export function openFilePicker() {
-  selector?.close()
-  selector = new Selector()
+const fileCommand =
+  vim.fn.executable('fd') !== 0 ?
+    'fd -t f' :
+    'git ls-files'
+
+export function openFilePicker(this: void, directory: string = '.') {
 
   const entries =
-    vim.fn.system('git ls-files').trim().split('\n')
+    vim.fn.system(`cd ${directory} && ${fileCommand}`).trim().split('\n')
     .map(line => {
       const parsed = path.parse(line)
       const { icon, color } = getIcon(parsed.base, parsed.ext)
@@ -24,6 +27,8 @@ export function openFilePicker() {
     })
   entries.sort((a, b) => { return a.text.length - b.text.length })
 
+  selector?.close()
+  selector = new Selector()
   selector.setEntries(entries)
   selector.onChange(input => {
     const sensitive = input !== input.toLowerCase()
