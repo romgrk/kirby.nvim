@@ -3,7 +3,7 @@ import path from './path'
 import { getIcon } from './icons'
 import { Selector } from './components/Selector'
 
-let selector: Selector | null = null
+export let selector: Selector | null = null
 
 export function open() {
   selector?.close()
@@ -32,9 +32,19 @@ export function open() {
     })
     selector!.setEntries(filtered)
   })
+  selector.onAccept(entry => {
+    vim.cmd(`edit ${entry.text}`)
+  })
+  selector.onDidClose(() => {
+    selector = null
+  })
 }
 
 export function close() {
   selector?.close()
   selector = null
+}
+
+export function accept() {
+  selector?.accept()
 }

@@ -2867,54 +2867,80 @@ return ____exports
 ["components.Selector"] = function(...) 
 local ____lualib = require("lualib_bundle")
 local __TS__Class = ____lualib.__TS__Class
+local __TS__ClassExtends = ____lualib.__TS__ClassExtends
 local __TS__New = ____lualib.__TS__New
 local __TS__ParseInt = ____lualib.__TS__ParseInt
 local ____exports = {}
 local ____kui = require("kui")
 local settings = ____kui.settings
 local editor = ____kui.editor
+local EventEmitter = ____kui.EventEmitter
 local Renderer = ____kui.Renderer
 local Container = ____kui.Container
 local Graphics = ____kui.Graphics
 local Text = ____kui.Text
 local TextStyle = ____kui.TextStyle
 local Input = ____kui.Input
+local cellPixels = settings.DIMENSIONS.cell_pixels
+local screenCells = settings.DIMENSIONS.screen_cells
 local setKeymap = vim.api.nvim_buf_set_keymap
 ____exports.Selector = __TS__Class()
 local Selector = ____exports.Selector
 Selector.name = "Selector"
+__TS__ClassExtends(Selector, EventEmitter)
 function Selector.prototype.____constructor(self)
+    EventEmitter.prototype.____constructor(self)
     self.onMountInput = function(____, bufferId)
         setKeymap(
             bufferId,
             "i",
             "<CR>",
-            "<nop>",
-            {}
+            "<Esc>:lua require(\"kirby\").selector:accept()<CR>",
+            {noremap = true, silent = true}
         )
         setKeymap(
             bufferId,
             "i",
             "<Esc>",
-            "<Esc>:lua require(\"kirby\").close()<CR>",
+            "<Esc>:lua require(\"kirby\").selector:close()<CR>",
+            {noremap = true, silent = true}
+        )
+        setKeymap(
+            bufferId,
+            "i",
+            "<A-j>",
+            "<C-o>:lua require(\"kirby\").selector:select(1)<CR>",
+            {noremap = true, silent = true}
+        )
+        setKeymap(
+            bufferId,
+            "i",
+            "<A-k>",
+            "<C-o>:lua require(\"kirby\").selector:select(-1)<CR>",
             {noremap = true, silent = true}
         )
         vim.cmd("startinsert")
     end
-    local screenCells = settings.DIMENSIONS.screen_cells
-    local cellPixels = settings.DIMENSIONS.cell_pixels
     local cw = cellPixels.width
     local ch = cellPixels.height
-    local width = math.max(10, screenCells.width - 20) * cw
-    local height = 20 * ch
-    local paddingX = 2 * cw
-    local paddingY = 1 * ch
-    local ____TS__New_result_0 = __TS__New(Renderer, {col = 10, row = 5, width = width, height = height})
-    self.renderer = ____TS__New_result_0
-    local renderer = ____TS__New_result_0
-    local ____TS__New_result_1 = __TS__New(Container)
-    self.stage = ____TS__New_result_1
-    local stage = ____TS__New_result_1
+    local ____temp_0 = math.max(10, screenCells.width - 20) * cw
+    self.width = ____temp_0
+    local width = ____temp_0
+    local ____temp_1 = 20 * ch
+    self.height = ____temp_1
+    local height = ____temp_1
+    local ____temp_2 = 2 * cw
+    self.paddingX = ____temp_2
+    local paddingX = ____temp_2
+    local ____temp_3 = 1 * ch
+    self.paddingY = ____temp_3
+    local paddingY = ____temp_3
+    local ____TS__New_result_4 = __TS__New(Renderer, {col = 10, row = 5, width = width, height = height})
+    self.renderer = ____TS__New_result_4
+    local renderer = ____TS__New_result_4
+    local ____TS__New_result_5 = __TS__New(Container)
+    self.stage = ____TS__New_result_5
+    local stage = ____TS__New_result_5
     local background = stage:addChild(__TS__New(Graphics))
     background.x = 0
     background.y = 0
@@ -2935,7 +2961,7 @@ function Selector.prototype.____constructor(self)
         height,
         20
     )
-    local ____temp_2 = stage:addChild(__TS__New(Input, {
+    local ____temp_6 = stage:addChild(__TS__New(Input, {
         padding = 5,
         width = width - 4 * cw,
         backgroundColor = 5199981,
@@ -2943,40 +2969,88 @@ function Selector.prototype.____constructor(self)
         borderWidth = 1,
         borderRadius = 5
     }))
-    self.input = ____temp_2
-    local input = ____temp_2
+    self.input = ____temp_6
+    local input = ____temp_6
     input.x = paddingX
     input.y = 1 * ch
     input:onMount(self.onMountInput)
+    self.focus = nil
     local containerY = input.y + input.height + 0.5 * ch
     local containerHeight = height - containerY - paddingY
-    local ____temp_3 = stage:addChild(__TS__New(Graphics))
-    self.container = ____temp_3
-    local container = ____temp_3
+    local ____temp_7 = stage:addChild(__TS__New(Graphics))
+    self.container = ____temp_7
+    local container = ____temp_7
     container.x = paddingX
     container.y = input.y + input.height + 0.5 * ch
-    self.maxEntries = math.floor(containerHeight / ch)
     local hlNormal = editor:getHighlight("NormalFloat")
     local color = hlNormal.foreground or 16777215
     self.labelStyle = __TS__New(TextStyle, {fill = color})
     self.detailsStyle = __TS__New(TextStyle, {fill = color - 3158064, fontSize = TextStyle.defaultStyle.fontSize * 0.9})
+    self.maxEntries = math.floor(containerHeight / ch)
+    self.entries = {}
+    self.activeIndex = -1
     renderer:render(stage)
 end
 function Selector.prototype.onChange(self, fn)
     self.input:onChange(fn)
 end
+function Selector.prototype.onDidClose(self, fn)
+    self:on("didClose", fn)
+end
+function Selector.prototype.onAccept(self, fn)
+    self:on("accept", fn)
+end
+function Selector.prototype.accept(self)
+    self:close()
+    local entry = self.entries[self.activeIndex + 1]
+    if entry then
+        self:emit("accept", entry)
+    end
+end
+function Selector.prototype.select(self, direction)
+    if self.activeIndex == -1 or not self.focus then
+        return
+    end
+    self.activeIndex = self.activeIndex + direction
+    if self.activeIndex < 0 then
+        self.activeIndex = self.activeIndex + #self.entries
+    end
+    if self.activeIndex >= #self.entries then
+        self.activeIndex = self.activeIndex - #self.entries
+    end
+    self.focus.y = self.activeIndex * cellPixels.height
+    self:render()
+end
 function Selector.prototype.setEntries(self, entries)
-    local cellPixels = settings.DIMENSIONS.cell_pixels
+    self.entries = entries
+    self.activeIndex = #entries > 0 and 0 or -1
     local cw = cellPixels.width
     local ch = cellPixels.height
     local container = self.container
     while #container.children > 0 do
         container:removeChildAt(0)
     end
+    local function yForIndex(____, i)
+        return i * ch
+    end
+    if self.activeIndex ~= -1 then
+        local ____temp_8 = container:addChild(__TS__New(Graphics))
+        self.focus = ____temp_8
+        local focus = ____temp_8
+        focus.y = yForIndex(nil, self.activeIndex)
+        focus:beginFill(2898559)
+        focus:drawRoundedRect(
+            0 - 5,
+            0,
+            self.width - 2 * self.paddingX + 10,
+            ch,
+            5
+        )
+    end
     local i = 0
     for ____, entry in ipairs(entries) do
         local line = container:addChild(__TS__New(Container))
-        line.y = i * ch
+        line.y = yForIndex(nil, i)
         local currentX = 0
         if entry.icon then
             local style = self.labelStyle:clone()
@@ -3011,6 +3085,7 @@ function Selector.prototype.close(self)
     self.input:destroy()
     self.stage:destroy()
     self.renderer:destroy()
+    self:emit("didClose")
 end
 return ____exports
  end,
@@ -3030,12 +3105,13 @@ local ____icons = require("icons")
 local getIcon = ____icons.getIcon
 local ____Selector = require("components.Selector")
 local Selector = ____Selector.Selector
-local selector = nil
+____exports.selector = nil
 function ____exports.open(self)
-    if selector ~= nil then
-        selector:close()
+    local ____opt_0 = ____exports.selector
+    if ____opt_0 ~= nil then
+        ____exports.selector:close()
     end
-    selector = __TS__New(Selector)
+    ____exports.selector = __TS__New(Selector)
     local entries = __TS__ArrayMap(
         __TS__StringSplit(
             __TS__StringTrim(vim.fn.system("git ls-files")),
@@ -3061,8 +3137,8 @@ function ____exports.open(self)
             return #a.text - #b.text
         end
     )
-    selector:setEntries(entries)
-    selector:onChange(function(____, input)
+    ____exports.selector:setEntries(entries)
+    ____exports.selector:onChange(function(____, input)
         local sensitive = input ~= string.lower(input)
         local filtered = __TS__ArrayFilter(
             entries,
@@ -3070,14 +3146,27 @@ function ____exports.open(self)
                 return fzy.has_match(input, e.text, sensitive)
             end
         )
-        selector:setEntries(filtered)
+        ____exports.selector:setEntries(filtered)
+    end)
+    ____exports.selector:onAccept(function(____, entry)
+        vim.cmd("edit " .. entry.text)
+    end)
+    ____exports.selector:onDidClose(function()
+        ____exports.selector = nil
     end)
 end
 function ____exports.close(self)
-    if selector ~= nil then
-        selector:close()
+    local ____opt_3 = ____exports.selector
+    if ____opt_3 ~= nil then
+        ____exports.selector:close()
     end
-    selector = nil
+    ____exports.selector = nil
+end
+function ____exports.accept(self)
+    local ____opt_5 = ____exports.selector
+    if ____opt_5 ~= nil then
+        ____exports.selector:accept()
+    end
 end
 return ____exports
  end,
