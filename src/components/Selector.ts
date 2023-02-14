@@ -120,7 +120,7 @@ export class Selector extends EventEmitter<Events> {
   accept() {
     this.close()
     const entry = this.entries[this.activeIndex]
-    if (entry)
+    if (entry !== undefined)
       this.emit('accept', entry)
   }
 

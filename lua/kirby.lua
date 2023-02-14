@@ -3003,7 +3003,7 @@ end
 function Selector.prototype.accept(self)
     self:close()
     local entry = self.entries[self.activeIndex + 1]
-    if entry then
+    if entry ~= nil then
         self:emit("accept", entry)
     end
 end
@@ -3106,7 +3106,7 @@ local getIcon = ____icons.getIcon
 local ____Selector = require("components.Selector")
 local Selector = ____Selector.Selector
 ____exports.selector = nil
-function ____exports.open(self)
+function ____exports.openFilePicker(self)
     local ____opt_0 = ____exports.selector
     if ____opt_0 ~= nil then
         ____exports.selector:close()
@@ -3161,12 +3161,6 @@ function ____exports.close(self)
         ____exports.selector:close()
     end
     ____exports.selector = nil
-end
-function ____exports.accept(self)
-    local ____opt_5 = ____exports.selector
-    if ____opt_5 ~= nil then
-        ____exports.selector:accept()
-    end
 end
 return ____exports
  end,

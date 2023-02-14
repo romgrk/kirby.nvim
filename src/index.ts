@@ -5,7 +5,7 @@ import { Selector } from './components/Selector'
 
 export let selector: Selector | null = null
 
-export function open() {
+export function openFilePicker() {
   selector?.close()
   selector = new Selector()
 
@@ -43,8 +43,4 @@ export function open() {
 export function close() {
   selector?.close()
   selector = null
-}
-
-export function accept() {
-  selector?.accept()
 }
