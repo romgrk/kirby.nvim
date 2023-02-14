@@ -15,13 +15,16 @@ const screenCells = settings.DIMENSIONS.screen_cells
 
 const setKeymap = vim.api.nvim_buf_set_keymap
 
-type Entry = {
+export type Entry = {
   icon?: string,
   iconColor?: string,
   label: string,
   text: string,
+  value: string,
   details?: string,
+  score?: number,
 }
+export type AcceptFn = (entry: Entry) => void
 
 export type Events = {
   accept: [entry: Entry],

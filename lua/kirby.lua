@@ -2531,7 +2531,7 @@ return {
 local ____exports = {}
 local devicons = require("nvim-web-devicons")
 local icons = devicons:get_icons()
-local defaultIcon = {icon = "", color = nil}
+local defaultIcon = {icon = "", color = nil}
 function ____exports.getIcon(self, filename, extname)
     return icons[filename] or icons[string.sub(extname, 2)] or defaultIcon
 end
@@ -3091,12 +3091,12 @@ return ____exports
  end,
 ["index"] = function(...) 
 local ____lualib = require("lualib_bundle")
-local __TS__StringTrim = ____lualib.__TS__StringTrim
-local __TS__StringSplit = ____lualib.__TS__StringSplit
 local __TS__ArrayMap = ____lualib.__TS__ArrayMap
-local __TS__ArraySort = ____lualib.__TS__ArraySort
 local __TS__New = ____lualib.__TS__New
 local __TS__ArrayFilter = ____lualib.__TS__ArrayFilter
+local __TS__ArraySort = ____lualib.__TS__ArraySort
+local __TS__StringTrim = ____lualib.__TS__StringTrim
+local __TS__StringSplit = ____lualib.__TS__StringSplit
 local ____exports = {}
 local fzy = require("fzy-lua-native")
 local ____path = require("path.index")
@@ -3106,38 +3106,26 @@ local getIcon = ____icons.getIcon
 local ____Selector = require("components.Selector")
 local Selector = ____Selector.Selector
 ____exports.selector = nil
+____exports.pickers = {}
 local fileCommand = vim.fn.executable("fd") ~= 0 and "fd -t f" or "git ls-files"
-function ____exports.openFilePicker(directory)
-    if directory == nil then
-        directory = "."
+function ____exports.open(opts, ...)
+    local entries
+    if opts.values ~= nil then
+        local valuesOpt = opts.values
+        local values = type(valuesOpt) == "function" and valuesOpt(...) or valuesOpt
+        entries = __TS__ArrayMap(
+            values,
+            function(____, v) return {label = v, text = v, value = v} end
+        )
+    else
+        local entriesOpt = opts.entries
+        entries = type(entriesOpt) == "function" and entriesOpt(...) or entriesOpt
     end
-    local entries = __TS__ArrayMap(
-        __TS__StringSplit(
-            __TS__StringTrim(vim.fn.system((("cd " .. directory) .. " && ") .. fileCommand)),
-            "\n"
-        ),
-        function(____, line)
-            local parsed = path:parse(line)
-            local ____getIcon_result_0 = getIcon(nil, parsed.base, parsed.ext)
-            local icon = ____getIcon_result_0.icon
-            local color = ____getIcon_result_0.color
-            return {
-                icon = icon,
-                iconColor = color,
-                label = parsed.base,
-                details = parsed.dir,
-                text = line
-            }
-        end
-    )
-    __TS__ArraySort(
-        entries,
-        function(____, a, b)
-            return #a.text - #b.text
-        end
-    )
-    local ____opt_1 = ____exports.selector
-    if ____opt_1 ~= nil then
+    local onAccept = type(opts.onAccept) == "function" and opts.onAccept or (function(____, entry)
+        vim.cmd((tostring(opts.onAccept) .. " ") .. entry.text)
+    end)
+    local ____opt_0 = ____exports.selector
+    if ____opt_0 ~= nil then
         ____exports.selector:close()
     end
     ____exports.selector = __TS__New(Selector)
@@ -3147,24 +3135,86 @@ function ____exports.openFilePicker(directory)
         local filtered = __TS__ArrayFilter(
             entries,
             function(____, e)
-                return fzy.has_match(input, e.text, sensitive)
+                local hasMatch = fzy.has_match(input, e.text, sensitive)
+                if hasMatch then
+                    e.score = fzy.score(input, e.text, sensitive)
+                end
+                return hasMatch
             end
+        )
+        __TS__ArraySort(
+            filtered,
+            function(____, a, b) return (b.score or 0) - (a.score or 0) end
         )
         ____exports.selector:setEntries(filtered)
     end)
-    ____exports.selector:onAccept(function(____, entry)
-        vim.cmd("edit " .. entry.text)
-    end)
+    ____exports.selector:onAccept(onAccept)
     ____exports.selector:onDidClose(function()
         ____exports.selector = nil
     end)
 end
 function ____exports.close(self)
-    local ____opt_3 = ____exports.selector
-    if ____opt_3 ~= nil then
+    local ____opt_2 = ____exports.selector
+    if ____opt_2 ~= nil then
         ____exports.selector:close()
     end
     ____exports.selector = nil
+end
+function ____exports.register(name, opts)
+    ____exports.pickers[name] = opts
+end
+function ____exports.openPickerByName(name, ...)
+    local args = {...}
+    if ____exports.pickers[name] ~= nil then
+        ____exports.open(____exports.pickers[name], args)
+    else
+        print("Could not find picker " .. name)
+    end
+end
+____exports.register(
+    "file",
+    {
+        entries = function(args)
+            local directory = unpack(args)
+            if directory == nil then
+                directory = "."
+            end
+            local entries = __TS__ArrayMap(
+                __TS__StringSplit(
+                    __TS__StringTrim(vim.fn.system((("cd " .. tostring(directory)) .. " && ") .. fileCommand)),
+                    "\n"
+                ),
+                function(____, line)
+                    local parsed = path:parse(line)
+                    local ____getIcon_result_4 = getIcon(nil, parsed.base, parsed.ext)
+                    local icon = ____getIcon_result_4.icon
+                    local color = ____getIcon_result_4.color
+                    return {
+                        icon = icon,
+                        iconColor = color,
+                        label = parsed.base,
+                        details = parsed.dir,
+                        text = line,
+                        value = line
+                    }
+                end
+            )
+            __TS__ArraySort(
+                entries,
+                function(____, a, b)
+                    return #a.text - #b.text
+                end
+            )
+            return entries
+        end,
+        onAccept = "edit"
+    }
+)
+function ____exports.openFilePicker(directory)
+    if directory == nil then
+        directory = "."
+    end
+    ____exports.openPickerByName("file", directory)
 end
 return ____exports
  end,
