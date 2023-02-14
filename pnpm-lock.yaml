@@ -1,13 +1,15 @@
 lockfileVersion: 5.4
 
 specifiers:
+  '@typescript-to-lua/language-extensions': ^1.0.0
   kui.nvim: '0.10'
   lua-types: ^2.13.1
   typescript: ^4.9.5
   typescript-to-lua: ^1.12.1
 
 dependencies:
-  kui.nvim: 0.10.0
+  '@typescript-to-lua/language-extensions': 1.0.0
+  kui.nvim: link:node_modules/kui.nvim
   lua-types: 2.13.1
   typescript: 4.9.5
   typescript-to-lua: 1.12.1_typescript@4.9.5
@@ -16,10 +18,6 @@ packages:
 
   /@typescript-to-lua/language-extensions/1.0.0:
     resolution: {integrity: sha512-GtmhFqyg+txpGgGLM3mlS3R6AEG9MQhKALxxcbr6SBzg9u7YAXcPKqUBaBYd6nH+Pi/eQLcWz4BNOLhz8v4TjQ==}
-    dev: false
-
-  /colord/2.9.3:
-    resolution: {integrity: sha512-jeC1axXpnb0/2nn/Y1LPuLdgXBLH7aDcHu4KEKfqw3CUhX7ZpfBSlPKyqXE6btIgEzfWtrX3/tyBCaCvXvMkOw==}
     dev: false
 
   /enhanced-resolve/5.12.0:
@@ -49,12 +47,6 @@ packages:
     resolution: {integrity: sha512-RRjxlvLDkD1YJwDbroBHMb+cukurkDWNyHx7D3oNB5x9rb5ogcksMC5wHCadcXoo67gVr/+3GFySh3134zi6rw==}
     dependencies:
       has: 1.0.3
-    dev: false
-
-  /kui.nvim/0.10.0:
-    resolution: {integrity: sha512-3L/+dO4gXeJuK4EHD1vPoazhhf/G2f+HqTWjbubxWTyme6TFIGxvdzocIYsHHOfAR7+04+KO21pwgkle/cj52A==}
-    dependencies:
-      colord: 2.9.3
     dev: false
 
   /lua-types/2.13.1:

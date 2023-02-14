@@ -6,11 +6,14 @@
     "lib": ["esnext"],
     "moduleResolution": "node",
     "types": [
+      "@typescript-to-lua/language-extensions",
       "lua-types/jit",
       "kui.nvim",
       "kui.nvim/types/kui",
       "kui.nvim/types/cairo",
-      "kui.nvim/types/vim"
+      "kui.nvim/types/vim",
+      "./types/fzy-lua-native",
+      "./types/nvim-web-devicons"
     ],
     "paths": {
       "kui": ["../node_modules/kui.nvim"]
@@ -24,7 +27,9 @@
     "luaBundleEntry": "./src/index.ts",
     "noResolvePaths": [
       "bit",
-      "kui"
+      "kui",
+      "fzy-lua-native",
+      "nvim-web-devicons"
     ]
   }
 }

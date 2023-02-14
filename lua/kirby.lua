@@ -2526,9 +2526,349 @@ return {
   __TS__Unpack = __TS__Unpack
 }
  end,
-["index"] = function(...) 
+["icons"] = function(...) 
+--[[ Generated with https://github.com/TypeScriptToLua/TypeScriptToLua ]]
+local ____exports = {}
+local devicons = require("nvim-web-devicons")
+local icons = devicons:get_icons()
+local defaultIcon = {icon = "", color = nil}
+function ____exports.getIcon(self, filename, extname)
+    return icons[filename] or icons[string.sub(extname, 2)] or defaultIcon
+end
+return ____exports
+ end,
+["utils.lastIndexOf"] = function(...) 
+--[[ Generated with https://github.com/TypeScriptToLua/TypeScriptToLua ]]
+local ____exports = {}
+function ____exports.default(self, haystack, needle)
+    local i = -1
+    local j = -1
+    local k = 0
+    repeat
+        do
+            i = j
+            j, k = string.find(haystack, needle, k + 1, true)
+        end
+    until not (j ~= nil)
+    if i ~= -1 then
+        return i - 1
+    end
+    return i
+end
+return ____exports
+ end,
+["path.posix"] = function(...) 
 local ____lualib = require("lualib_bundle")
+local __TS__ArraySlice = ____lualib.__TS__ArraySlice
+local __TS__StringAccess = ____lualib.__TS__StringAccess
+local __TS__StringSlice = ____lualib.__TS__StringSlice
+local Error = ____lualib.Error
+local RangeError = ____lualib.RangeError
+local ReferenceError = ____lualib.ReferenceError
+local SyntaxError = ____lualib.SyntaxError
+local TypeError = ____lualib.TypeError
+local URIError = ____lualib.URIError
 local __TS__New = ____lualib.__TS__New
+local __TS__StringSplit = ____lualib.__TS__StringSplit
+local __TS__StringSubstr = ____lualib.__TS__StringSubstr
+local __TS__ArrayConcat = ____lualib.__TS__ArrayConcat
+local __TS__TypeOf = ____lualib.__TS__TypeOf
+local ____exports = {}
+local ____lastIndexOf = require("utils.lastIndexOf")
+local lastIndexOf = ____lastIndexOf.default
+function ____exports.isAbsolute(self, path)
+    return string.sub(path, 1, 1) == "/"
+end
+local function isString(____, value)
+    return type(value) == "string"
+end
+local function isObject(____, value)
+    return type(value) == "table"
+end
+local function normalizeArray(self, parts, allowAboveRoot)
+    local res = {}
+    do
+        local i = 0
+        while i < #parts do
+            do
+                local p = parts[i + 1]
+                if not p or p == "." then
+                    goto __continue5
+                end
+                if p == ".." then
+                    if #res and res[#res] ~= ".." then
+                        table.remove(res)
+                    elseif allowAboveRoot then
+                        res[#res + 1] = ".."
+                    end
+                else
+                    res[#res + 1] = p
+                end
+            end
+            ::__continue5::
+            i = i + 1
+        end
+    end
+    return res
+end
+local function trimArray(self, arr)
+    local lastIndex = #arr - 1
+    local start = 0
+    do
+        while start <= lastIndex do
+            if arr[start + 1] then
+                break
+            end
+            start = start + 1
+        end
+    end
+    local ____end = lastIndex
+    do
+        while ____end >= 0 do
+            if arr[____end + 1] then
+                break
+            end
+            ____end = ____end - 1
+        end
+    end
+    if start == 0 and ____end == lastIndex then
+        return arr
+    end
+    if start > ____end then
+        return {}
+    end
+    return __TS__ArraySlice(arr, start, ____end + 1)
+end
+____exports.sep = "/"
+____exports.delimiter = ":"
+local function posixSplitPath(self, filepath)
+    local root = __TS__StringAccess(filepath, 0) == "/" and "/" or ""
+    local lastSeparator = lastIndexOf(nil, filepath, ____exports.sep)
+    local dirname = lastSeparator == -1 and "" or __TS__StringSlice(filepath, #root, lastSeparator + 1)
+    local filename = __TS__StringSlice(filepath, lastSeparator + 1)
+    local lastDot = lastIndexOf(nil, filepath, ".")
+    local _extname = __TS__StringSlice(filepath, lastDot)
+    local extname = lastDot == -1 and "" or (_extname == filename and "" or _extname)
+    return {root, dirname, filename, extname}
+end
+function ____exports.resolve(self, ...)
+    local args = {...}
+    local resolvedPath = ""
+    local resolvedAbsolute = false
+    do
+        local i = #args - 1
+        while i >= -1 and not resolvedAbsolute do
+            do
+                local path = i >= 0 and args[i + 1] or os.getenv("PWD")
+                if not isString(nil, path) then
+                    error(
+                        __TS__New(TypeError, "Arguments to path.resolve must be strings"),
+                        0
+                    )
+                elseif not path then
+                    goto __continue20
+                end
+                resolvedPath = (path .. "/") .. resolvedPath
+                resolvedAbsolute = __TS__StringAccess(path, 0) == "/"
+            end
+            ::__continue20::
+            i = i - 1
+        end
+    end
+    resolvedPath = table.concat(
+        normalizeArray(
+            nil,
+            __TS__StringSplit(resolvedPath, "/"),
+            not resolvedAbsolute
+        ),
+        "/"
+    )
+    return (resolvedAbsolute and "/" or "") .. resolvedPath or "."
+end
+function ____exports.normalize(self, path)
+    local isAbsolute_ = ____exports.isAbsolute(nil, path)
+    local trailingSlash = path and __TS__StringAccess(path, #path - 1) == "/"
+    path = table.concat(
+        normalizeArray(
+            nil,
+            __TS__StringSplit(path, "/"),
+            not ____exports.isAbsolute
+        ),
+        "/"
+    )
+    if not path and not ____exports.isAbsolute then
+        path = "."
+    end
+    if path and trailingSlash then
+        path = path .. "/"
+    end
+    return (isAbsolute_ and "/" or "") .. path
+end
+function ____exports.join(self, ...)
+    local args = {...}
+    local path = ""
+    do
+        local i = 0
+        while i < #args do
+            local segment = args[i + 1]
+            if not isString(nil, segment) then
+                error(
+                    __TS__New(TypeError, "Arguments to path.join must be strings"),
+                    0
+                )
+            end
+            if segment ~= nil and segment ~= "" then
+                if not path then
+                    path = path .. segment
+                else
+                    path = path .. "/" .. segment
+                end
+            end
+            i = i + 1
+        end
+    end
+    return ____exports.normalize(nil, path)
+end
+function ____exports.relative(self, from, to)
+    from = __TS__StringSubstr(
+        ____exports.resolve(nil, from),
+        1
+    )
+    to = __TS__StringSubstr(
+        ____exports.resolve(nil, to),
+        1
+    )
+    local fromParts = trimArray(
+        nil,
+        __TS__StringSplit(from, "/")
+    )
+    local toParts = trimArray(
+        nil,
+        __TS__StringSplit(to, "/")
+    )
+    local length = math.min(#fromParts, #toParts)
+    local samePartsLength = length
+    do
+        local i = 0
+        while i < length do
+            if fromParts[i + 1] ~= toParts[i + 1] then
+                samePartsLength = i
+                break
+            end
+            i = i + 1
+        end
+    end
+    local outputParts = {}
+    do
+        local i = samePartsLength
+        while i < #fromParts do
+            outputParts[#outputParts + 1] = ".."
+            i = i + 1
+        end
+    end
+    outputParts = __TS__ArrayConcat(
+        outputParts,
+        __TS__ArraySlice(toParts, samePartsLength)
+    )
+    return table.concat(outputParts, "/")
+end
+function ____exports._makeLong(self, path)
+    return path
+end
+function ____exports.dirname(self, path)
+    local result = posixSplitPath(nil, path)
+    local root = result[1]
+    local dir = result[2]
+    if not root and not dir then
+        return "."
+    end
+    if dir ~= nil and dir ~= "" then
+        dir = __TS__StringSubstr(dir, 0, #dir - 1)
+    end
+    return root .. dir
+end
+function ____exports.basename(self, path, ext)
+    local f = posixSplitPath(nil, path)[3]
+    if ext and __TS__StringSubstr(f, -1 * #ext) == ext then
+        f = __TS__StringSubstr(f, 0, #f - #ext)
+    end
+    return f
+end
+function ____exports.extname(self, path)
+    return posixSplitPath(nil, path)[4]
+end
+function ____exports.format(self, _pathObject)
+    error(
+        __TS__New(Error, "unimplemented"),
+        0
+    )
+end
+function ____exports.parse(self, pathString)
+    if not isString(nil, pathString) then
+        error(
+            __TS__New(
+                TypeError,
+                "Parameter 'pathString' must be a string, not " .. __TS__TypeOf(pathString)
+            ),
+            0
+        )
+    end
+    local allParts = posixSplitPath(nil, pathString)
+    if not allParts or #allParts ~= 4 then
+        error(
+            __TS__New(TypeError, ("Invalid path '" .. pathString) .. "'"),
+            0
+        )
+    end
+    allParts[2] = allParts[2] or ""
+    allParts[3] = allParts[3] or ""
+    allParts[4] = allParts[4] or ""
+    return {
+        root = allParts[1],
+        dir = allParts[1] .. string.sub(allParts[2], 1, -2),
+        base = allParts[3],
+        ext = allParts[4],
+        name = __TS__StringSlice(allParts[3], 0, #allParts[3] - #allParts[4])
+    }
+end
+____exports.default = {
+    sep = ____exports.sep,
+    delimiter = ____exports.delimiter,
+    resolve = ____exports.resolve,
+    normalize = ____exports.normalize,
+    isAbsolute = ____exports.isAbsolute,
+    join = ____exports.join,
+    relative = ____exports.relative,
+    _makeLong = ____exports._makeLong,
+    dirname = ____exports.dirname,
+    basename = ____exports.basename,
+    extname = ____exports.extname,
+    format = ____exports.format,
+    parse = ____exports.parse
+}
+return ____exports
+ end,
+["path.index"] = function(...) 
+--[[ Generated with https://github.com/TypeScriptToLua/TypeScriptToLua ]]
+local ____exports = {}
+local ____posix = require("path.posix")
+local posix = ____posix.default
+do
+    local ____export = require("path.posix")
+    for ____exportKey, ____exportValue in pairs(____export) do
+        if ____exportKey ~= "default" then
+            ____exports[____exportKey] = ____exportValue
+        end
+    end
+end
+____exports.default = posix
+return ____exports
+ end,
+["components.Selector"] = function(...) 
+local ____lualib = require("lualib_bundle")
+local __TS__Class = ____lualib.__TS__Class
+local __TS__New = ____lualib.__TS__New
+local __TS__ParseInt = ____lualib.__TS__ParseInt
 local ____exports = {}
 local ____kui = require("kui")
 local settings = ____kui.settings
@@ -2537,37 +2877,65 @@ local Renderer = ____kui.Renderer
 local Container = ____kui.Container
 local Graphics = ____kui.Graphics
 local Text = ____kui.Text
+local TextStyle = ____kui.TextStyle
 local Input = ____kui.Input
-local ticker = ____kui.ticker
-function ____exports.demo(self)
+local setKeymap = vim.api.nvim_buf_set_keymap
+____exports.Selector = __TS__Class()
+local Selector = ____exports.Selector
+Selector.name = "Selector"
+function Selector.prototype.____constructor(self)
+    self.onMountInput = function(____, bufferId)
+        setKeymap(
+            bufferId,
+            "i",
+            "<CR>",
+            "<nop>",
+            {}
+        )
+        setKeymap(
+            bufferId,
+            "i",
+            "<Esc>",
+            "<Esc>:lua require(\"kirby\").close()<CR>",
+            {noremap = true, silent = true}
+        )
+        vim.cmd("startinsert")
+    end
+    local screenCells = settings.DIMENSIONS.screen_cells
     local cellPixels = settings.DIMENSIONS.cell_pixels
     local cw = cellPixels.width
     local ch = cellPixels.height
-    local width = 20 * cw
-    local height = 8 * ch
-    local renderer = __TS__New(Renderer, {col = 10, row = 5, width = width, height = height})
-    local stage = __TS__New(Container)
-    local container = stage:addChild(__TS__New(Graphics))
-    container.x = 0
-    container.y = 0
-    container:beginFill(4080982)
-    container:drawRoundedRect(
+    local width = math.max(10, screenCells.width - 20) * cw
+    local height = 20 * ch
+    local paddingX = 2 * cw
+    local paddingY = 1 * ch
+    local ____TS__New_result_0 = __TS__New(Renderer, {col = 10, row = 5, width = width, height = height})
+    self.renderer = ____TS__New_result_0
+    local renderer = ____TS__New_result_0
+    local ____TS__New_result_1 = __TS__New(Container)
+    self.stage = ____TS__New_result_1
+    local stage = ____TS__New_result_1
+    local background = stage:addChild(__TS__New(Graphics))
+    background.x = 0
+    background.y = 0
+    background:beginFill(4080982)
+    background:drawRoundedRect(
         0,
         0,
         width,
         height,
         20
     )
-    container:endFill()
-    container:lineStyle(2, 2106156, 1)
-    container:drawRoundedRect(
+    background:endFill()
+    background:lineStyle(2, 2106156, 1)
+    background:drawRoundedRect(
         0,
         0,
         width,
         height,
         20
     )
-    local input = stage:addChild(__TS__New(Input, {
+    local ____temp_2 = stage:addChild(__TS__New(Input, {
         padding = 5,
         width = width - 4 * cw,
         backgroundColor = 5199981,
@@ -2575,41 +2943,141 @@ function ____exports.demo(self)
         borderWidth = 1,
         borderRadius = 5
     }))
-    input.x = 2 * cw
+    self.input = ____temp_2
+    local input = ____temp_2
+    input.x = paddingX
     input.y = 1 * ch
-    local underline = input:addChild(__TS__New(Graphics))
-    underline.x = 5
-    underline.y = input.height - 3
-    local text = stage:addChild(__TS__New(
-        Text,
-        "Hello world",
-        {fill = editor:getHighlight("normal").foreground or 0}
-    ))
-    text.x = 2 * cw
-    local dots = stage:addChild(__TS__New(Graphics))
-    dots.y = container.height - 2 * cw
-    dots:beginFill(5873407)
-    dots:drawCircle(3 * cw, 0, 10)
-    dots:drawCircle(width / 2, 0, 10)
-    dots:drawCircle(width - 3 * cw, 0, 10)
-    ticker(
-        nil,
-        function(____, current)
-            local width = 50 + 50 * math.abs(math.sin(current / 1000))
-            underline:clear()
-            underline:beginFill(5873407)
-            underline:drawRoundedRect(
-                0,
-                0,
-                width,
-                2,
-                2
-            )
-            underline:endFill()
-            text.y = 55 + 15 * math.sin(current / 1000)
-            renderer:render(stage)
+    input:onMount(self.onMountInput)
+    local containerY = input.y + input.height + 0.5 * ch
+    local containerHeight = height - containerY - paddingY
+    local ____temp_3 = stage:addChild(__TS__New(Graphics))
+    self.container = ____temp_3
+    local container = ____temp_3
+    container.x = paddingX
+    container.y = input.y + input.height + 0.5 * ch
+    self.maxEntries = math.floor(containerHeight / ch)
+    local hlNormal = editor:getHighlight("NormalFloat")
+    local color = hlNormal.foreground or 16777215
+    self.labelStyle = __TS__New(TextStyle, {fill = color})
+    self.detailsStyle = __TS__New(TextStyle, {fill = color - 3158064, fontSize = TextStyle.defaultStyle.fontSize * 0.9})
+    renderer:render(stage)
+end
+function Selector.prototype.onChange(self, fn)
+    self.input:onChange(fn)
+end
+function Selector.prototype.setEntries(self, entries)
+    local cellPixels = settings.DIMENSIONS.cell_pixels
+    local cw = cellPixels.width
+    local ch = cellPixels.height
+    local container = self.container
+    while #container.children > 0 do
+        container:removeChildAt(0)
+    end
+    local i = 0
+    for ____, entry in ipairs(entries) do
+        local line = container:addChild(__TS__New(Container))
+        line.y = i * ch
+        local currentX = 0
+        if entry.icon then
+            local style = self.labelStyle:clone()
+            if entry.iconColor then
+                style.fill = __TS__ParseInt(
+                    string.sub(entry.iconColor, 2),
+                    16
+                )
+            end
+            local textIcon = line:addChild(__TS__New(Text, entry.icon, style))
+            textIcon.x = currentX
+        end
+        currentX = currentX + 2 * cw
+        local textEntry = line:addChild(__TS__New(Text, entry.label, self.labelStyle))
+        textEntry.x = currentX
+        currentX = currentX + (#entry.label + 0.5) * cw
+        if entry.details ~= nil then
+            local textEntry = line:addChild(__TS__New(Text, entry.details, self.detailsStyle))
+            textEntry.x = currentX
+        end
+        i = i + 1
+        if i >= self.maxEntries then
+            break
+        end
+    end
+    self:render()
+end
+function Selector.prototype.render(self)
+    self.renderer:render(self.stage)
+end
+function Selector.prototype.close(self)
+    self.input:destroy()
+    self.stage:destroy()
+    self.renderer:destroy()
+end
+return ____exports
+ end,
+["index"] = function(...) 
+local ____lualib = require("lualib_bundle")
+local __TS__New = ____lualib.__TS__New
+local __TS__StringTrim = ____lualib.__TS__StringTrim
+local __TS__StringSplit = ____lualib.__TS__StringSplit
+local __TS__ArrayMap = ____lualib.__TS__ArrayMap
+local __TS__ArraySort = ____lualib.__TS__ArraySort
+local __TS__ArrayFilter = ____lualib.__TS__ArrayFilter
+local ____exports = {}
+local fzy = require("fzy-lua-native")
+local ____path = require("path.index")
+local path = ____path.default
+local ____icons = require("icons")
+local getIcon = ____icons.getIcon
+local ____Selector = require("components.Selector")
+local Selector = ____Selector.Selector
+local selector = nil
+function ____exports.open(self)
+    if selector ~= nil then
+        selector:close()
+    end
+    selector = __TS__New(Selector)
+    local entries = __TS__ArrayMap(
+        __TS__StringSplit(
+            __TS__StringTrim(vim.fn.system("git ls-files")),
+            "\n"
+        ),
+        function(____, line)
+            local parsed = path:parse(line)
+            local ____getIcon_result_2 = getIcon(nil, parsed.base, parsed.ext)
+            local icon = ____getIcon_result_2.icon
+            local color = ____getIcon_result_2.color
+            return {
+                icon = icon,
+                iconColor = color,
+                label = parsed.base,
+                details = parsed.dir,
+                text = line
+            }
         end
     )
+    __TS__ArraySort(
+        entries,
+        function(____, a, b)
+            return #a.text - #b.text
+        end
+    )
+    selector:setEntries(entries)
+    selector:onChange(function(____, input)
+        local sensitive = input ~= string.lower(input)
+        local filtered = __TS__ArrayFilter(
+            entries,
+            function(____, e)
+                return fzy.has_match(input, e.text, sensitive)
+            end
+        )
+        selector:setEntries(filtered)
+    end)
+end
+function ____exports.close(self)
+    if selector ~= nil then
+        selector:close()
+    end
+    selector = nil
 end
 return ____exports
  end,
