@@ -12,7 +12,7 @@ declare module 'fzy-lua-native' {
   export function has_match(needle: string, haystack: string, is_case_sensitive: boolean): boolean;
   export function score(needle: string, haystack: string, is_case_sensitive: boolean): number
   export function match_many(needle: string, lines: string[], is_case_sensitive: boolean): string[]
-  export function positions(needle: string, lines: string[], is_case_sensitive: boolean): number[]
+  export function positions(needle: string, line: string, is_case_sensitive: boolean): number[]
   export function positions_many(needle: string, lines: string[], is_case_sensitive: boolean): number[][]
   export function get_score_min(): number
   export function get_score_max(): number

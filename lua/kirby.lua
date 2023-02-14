@@ -2526,12 +2526,43 @@ return {
   __TS__Unpack = __TS__Unpack
 }
  end,
+["constants"] = function(...) 
+--[[ Generated with https://github.com/TypeScriptToLua/TypeScriptToLua ]]
+local ____exports = {}
+____exports.HIGHLIGHT_COLORS = {
+    "#12C2E9",
+    "#30B5EA",
+    "#4DA7EA",
+    "#6B9AEB",
+    "#898CEC",
+    "#A67FEC",
+    "#C471ED",
+    "#CC6BD4",
+    "#D566BC",
+    "#DD60A3",
+    "#E55A8A",
+    "#EE5572",
+    "#F64F59",
+    "#EE5572",
+    "#E55A8A",
+    "#DD60A3",
+    "#D566BC",
+    "#CC6BD4",
+    "#C471ED",
+    "#A67FEC",
+    "#898CEC",
+    "#6B9AEB",
+    "#4DA7EA",
+    "#30B5EA"
+}
+return ____exports
+ end,
 ["icons"] = function(...) 
 --[[ Generated with https://github.com/TypeScriptToLua/TypeScriptToLua ]]
 local ____exports = {}
 local devicons = require("nvim-web-devicons")
 local icons = devicons:get_icons()
-local defaultIcon = {icon = "", color = nil}
+local defaultIcon = {icon = "", color = "#6E6E6E"}
 function ____exports.getIcon(self, filename, extname)
     return icons[filename] or icons[string.sub(extname, 2)] or defaultIcon
 end
@@ -2870,7 +2901,12 @@ local __TS__Class = ____lualib.__TS__Class
 local __TS__ClassExtends = ____lualib.__TS__ClassExtends
 local __TS__New = ____lualib.__TS__New
 local __TS__ParseInt = ____lualib.__TS__ParseInt
+local __TS__ArrayFindIndex = ____lualib.__TS__ArrayFindIndex
+local __TS__StringSlice = ____lualib.__TS__StringSlice
+local __TS__StringAccess = ____lualib.__TS__StringAccess
+local __TS__ArrayMap = ____lualib.__TS__ArrayMap
 local ____exports = {}
+local getLabelHighlightStyles, getDetailsHighlightStyles, labelHlStyle, detailsHlStyle
 local ____kui = require("kui")
 local settings = ____kui.settings
 local editor = ____kui.editor
@@ -2881,6 +2917,37 @@ local Graphics = ____kui.Graphics
 local Text = ____kui.Text
 local TextStyle = ____kui.TextStyle
 local Input = ____kui.Input
+local ____constants = require("constants")
+local HIGHLIGHT_COLORS = ____constants.HIGHLIGHT_COLORS
+function getLabelHighlightStyles(self, baseStyle)
+    if labelHlStyle then
+        return labelHlStyle
+    end
+    labelHlStyle = __TS__ArrayMap(
+        HIGHLIGHT_COLORS,
+        function(____, color)
+            local style = baseStyle:clone()
+            style.fill = color
+            return style
+        end
+    )
+    return labelHlStyle
+end
+function getDetailsHighlightStyles(self, baseStyle)
+    if detailsHlStyle then
+        return detailsHlStyle
+    end
+    detailsHlStyle = __TS__ArrayMap(
+        HIGHLIGHT_COLORS,
+        function(____, color)
+            local style = baseStyle:clone()
+            style.fill = color
+            style.fontWeight = "bold"
+            return style
+        end
+    )
+    return detailsHlStyle
+end
 local cellPixels = settings.DIMENSIONS.cell_pixels
 local screenCells = settings.DIMENSIONS.screen_cells
 local setKeymap = vim.api.nvim_buf_set_keymap
@@ -3064,12 +3131,88 @@ function Selector.prototype.setEntries(self, entries)
             textIcon.x = currentX
         end
         currentX = currentX + 2 * cw
-        local textEntry = line:addChild(__TS__New(Text, entry.label, self.labelStyle))
-        textEntry.x = currentX
-        currentX = currentX + (#entry.label + 0.5) * cw
+        local positions = entry.positions
+        local disableHighlights = true
+        do
+            local label = entry.label
+            if not positions or disableHighlights then
+                local textEntry = line:addChild(__TS__New(Text, label, self.labelStyle))
+                textEntry.x = currentX
+                currentX = currentX + textEntry.width
+            else
+                local highlightStyles = getLabelHighlightStyles(nil, self.labelStyle)
+                local nextHighlight = 0
+                local current = 0
+                local currentPositionI = __TS__ArrayFindIndex(
+                    positions,
+                    function(____, p) return p >= (entry.labelOffset or 0) end
+                )
+                local function currentPosition()
+                    return positions[currentPositionI + 1] and positions[currentPositionI + 1] - (entry.labelOffset or 0) or nil
+                end
+                while current < #label do
+                    local currentEnd = currentPosition(nil) or #label
+                    if currentEnd > current then
+                        local slice = __TS__StringSlice(label, current, currentEnd)
+                        local textEntry = line:addChild(__TS__New(Text, slice, self.labelStyle))
+                        textEntry.x = currentX
+                        currentX = currentX + textEntry.width
+                        current = current + #slice
+                    end
+                    while currentPosition(nil) == current do
+                        local character = __TS__StringAccess(label, current)
+                        local ____nextHighlight_9 = nextHighlight
+                        nextHighlight = ____nextHighlight_9 + 1
+                        local style = highlightStyles[____nextHighlight_9 % #highlightStyles + 1]
+                        local textEntry = line:addChild(__TS__New(Text, character, style))
+                        textEntry.x = currentX
+                        currentX = currentX + textEntry.width
+                        currentPositionI = currentPositionI + 1
+                        current = current + 1
+                    end
+                end
+            end
+        end
+        currentX = currentX + 1 * cw
         if entry.details ~= nil then
-            local textEntry = line:addChild(__TS__New(Text, entry.details, self.detailsStyle))
-            textEntry.x = currentX
+            local details = entry.details
+            if not positions or disableHighlights then
+                local textEntry = line:addChild(__TS__New(Text, details, self.detailsStyle))
+                textEntry.x = currentX
+                currentX = currentX + textEntry.width
+            else
+                local highlightStyles = getDetailsHighlightStyles(nil, self.detailsStyle)
+                local nextHighlight = 0
+                local current = 0
+                local currentPositionI = __TS__ArrayFindIndex(
+                    positions,
+                    function(____, p) return p >= (entry.detailsOffset or 0) end
+                )
+                local function currentPosition()
+                    return positions[currentPositionI + 1] and positions[currentPositionI + 1] - (entry.detailsOffset or 0) or nil
+                end
+                while current < #details do
+                    local currentEnd = currentPosition(nil) or #details
+                    if currentEnd > current then
+                        local slice = __TS__StringSlice(details, current, currentEnd)
+                        local textEntry = line:addChild(__TS__New(Text, slice, self.detailsStyle))
+                        textEntry.x = currentX
+                        currentX = currentX + textEntry.width
+                        current = current + #slice
+                    end
+                    while currentPosition(nil) == current do
+                        local character = __TS__StringAccess(details, current)
+                        local ____nextHighlight_10 = nextHighlight
+                        nextHighlight = ____nextHighlight_10 + 1
+                        local style = highlightStyles[____nextHighlight_10 % #highlightStyles + 1]
+                        local textEntry = line:addChild(__TS__New(Text, character, style))
+                        textEntry.x = currentX
+                        currentX = currentX + textEntry.width
+                        currentPositionI = currentPositionI + 1
+                        current = current + 1
+                    end
+                end
+            end
         end
         i = i + 1
         if i >= self.maxEntries then
@@ -3087,12 +3230,15 @@ function Selector.prototype.close(self)
     self.renderer:destroy()
     self:emit("didClose")
 end
+labelHlStyle = nil
+detailsHlStyle = nil
 return ____exports
  end,
 ["index"] = function(...) 
 local ____lualib = require("lualib_bundle")
 local __TS__ArrayMap = ____lualib.__TS__ArrayMap
 local __TS__New = ____lualib.__TS__New
+local __TS__ArrayForEach = ____lualib.__TS__ArrayForEach
 local __TS__ArrayFilter = ____lualib.__TS__ArrayFilter
 local __TS__ArraySort = ____lualib.__TS__ArraySort
 local __TS__StringTrim = ____lualib.__TS__StringTrim
@@ -3134,10 +3280,18 @@ function ____exports.open(opts, ...)
         local sensitive = input ~= string.lower(input)
         local filtered = __TS__ArrayFilter(
             entries,
-            function(____, e)
+            function(____, e, i)
                 local hasMatch = fzy.has_match(input, e.text, sensitive)
                 if hasMatch then
                     e.score = fzy.score(input, e.text, sensitive)
+                    e.positions = fzy.positions(input, e.text, sensitive)
+                    __TS__ArrayForEach(
+                        e.positions,
+                        function(____, _, i)
+                            local ____e_positions_2, ____temp_3 = e.positions, i + 1
+                            ____e_positions_2[____temp_3] = ____e_positions_2[____temp_3] - 1
+                        end
+                    )
                 end
                 return hasMatch
             end
@@ -3154,8 +3308,8 @@ function ____exports.open(opts, ...)
     end)
 end
 function ____exports.close(self)
-    local ____opt_2 = ____exports.selector
-    if ____opt_2 ~= nil then
+    local ____opt_4 = ____exports.selector
+    if ____opt_4 ~= nil then
         ____exports.selector:close()
     end
     ____exports.selector = nil
@@ -3186,16 +3340,18 @@ ____exports.register(
                 ),
                 function(____, line)
                     local parsed = path:parse(line)
-                    local ____getIcon_result_4 = getIcon(nil, parsed.base, parsed.ext)
-                    local icon = ____getIcon_result_4.icon
-                    local color = ____getIcon_result_4.color
+                    local ____getIcon_result_6 = getIcon(nil, parsed.base, parsed.ext)
+                    local icon = ____getIcon_result_6.icon
+                    local color = ____getIcon_result_6.color
                     return {
                         icon = icon,
                         iconColor = color,
                         label = parsed.base,
                         details = parsed.dir,
                         text = line,
-                        value = line
+                        value = line,
+                        labelOffset = #parsed.dir > 0 and #parsed.dir + 1 or 0,
+                        detailsOffset = 0
                     }
                 end
             )

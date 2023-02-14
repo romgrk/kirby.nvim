@@ -44,10 +44,14 @@ export function open(this: void, opts: Picker, ...args: any[]) {
   selector.setEntries(entries)
   selector.onChange(input => {
     const sensitive = input !== input.toLowerCase()
-    const filtered = entries.filter(e => {
+    const filtered = entries.filter((e, i) => {
       const hasMatch = fzy.has_match(input, e.text, sensitive)
       if (hasMatch) {
         e.score = fzy.score(input, e.text, sensitive)
+        e.positions = fzy.positions(input, e.text, sensitive)
+        e.positions.forEach((_, i) => {
+          e.positions![i] -= 1
+        })
       }
       return hasMatch
     })
@@ -91,6 +95,8 @@ register('file', {
           details: parsed.dir,
           text: line,
           value: line,
+          labelOffset: parsed.dir.length > 0 ? parsed.dir.length + 1 : 0,
+          detailsOffset: 0,
         }
       })
     entries.sort((a, b) => { return a.text.length - b.text.length })

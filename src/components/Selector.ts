@@ -9,6 +9,7 @@ import {
   TextStyle,
   Input,
 } from 'kui'
+import { HIGHLIGHT_COLORS } from '../constants'
 
 const cellPixels = settings.DIMENSIONS.cell_pixels
 const screenCells = settings.DIMENSIONS.screen_cells
@@ -23,6 +24,9 @@ export type Entry = {
   value: string,
   details?: string,
   score?: number,
+  positions?: number[],
+  labelOffset?: number,
+  detailsOffset?: number,
 }
 export type AcceptFn = (entry: Entry) => void
 
@@ -185,13 +189,88 @@ export class Selector extends EventEmitter<Events> {
       }
       currentX += 2 * cw
 
-      const textEntry = line.addChild(new Text(entry.label, this.labelStyle))
-      textEntry.x = currentX
-      currentX += (entry.label.length + 0.5) * cw
+      const positions = entry.positions
+      const disableHighlights = true // Text layout going wrong
+
+      {
+        const label = entry.label
+        if (!positions || disableHighlights) {
+          const textEntry = line.addChild(new Text(label, this.labelStyle))
+          textEntry.x = currentX
+          currentX += textEntry.width
+        } else {
+          const highlightStyles = getLabelHighlightStyles(this.labelStyle)
+          let nextHighlight = 0
+
+          let current = 0
+          let currentPositionI = positions.findIndex(p => p >= (entry.labelOffset ?? 0))
+          const currentPosition = () => positions[currentPositionI] ?
+            positions[currentPositionI] - (entry.labelOffset ?? 0) : undefined
+          while (current < label.length) {
+            const currentEnd = currentPosition() ?? label.length
+
+            if (currentEnd > current) {
+              const slice = label.slice(current, currentEnd)
+
+              const textEntry = line.addChild(new Text(slice, this.labelStyle))
+              textEntry.x = currentX
+              currentX += textEntry.width
+              current += slice.length
+            }
+
+            while (currentPosition() === current) {
+              const character = label[current]
+              const style = highlightStyles[nextHighlight++ % highlightStyles.length]
+              const textEntry = line.addChild(new Text(character, style))
+              textEntry.x = currentX
+              currentX += textEntry.width
+
+              currentPositionI++
+              current++
+            }
+          }
+        }
+      }
+      currentX += 1 * cw
 
       if (entry.details !== undefined) {
-        const textEntry = line.addChild(new Text(entry.details, this.detailsStyle))
-        textEntry.x = currentX
+        const details = entry.details
+        if (!positions || disableHighlights) {
+          const textEntry = line.addChild(new Text(details, this.detailsStyle))
+          textEntry.x = currentX
+          currentX += textEntry.width
+        } else {
+          const highlightStyles = getDetailsHighlightStyles(this.detailsStyle)
+          let nextHighlight = 0
+
+          let current = 0
+          let currentPositionI = positions.findIndex(p => p >= (entry.detailsOffset ?? 0))
+          const currentPosition = () => positions[currentPositionI] ?
+            positions[currentPositionI] - (entry.detailsOffset ?? 0) : undefined
+          while (current < details.length) {
+            const currentEnd = currentPosition() ?? details.length
+
+            if (currentEnd > current) {
+              const slice = details.slice(current, currentEnd)
+
+              const textEntry = line.addChild(new Text(slice, this.detailsStyle))
+              textEntry.x = currentX
+              currentX += textEntry.width
+              current += slice.length
+            }
+
+            while (currentPosition() === current) {
+              const character = details[current]
+              const style = highlightStyles[nextHighlight++ % highlightStyles.length]
+              const textEntry = line.addChild(new Text(character, style))
+              textEntry.x = currentX
+              currentX += textEntry.width
+
+              currentPositionI++
+              current++
+            }
+          }
+        }
       }
 
       i++
@@ -212,4 +291,30 @@ export class Selector extends EventEmitter<Events> {
     this.renderer.destroy()
     this.emit('didClose')
   }
+}
+
+let labelHlStyle: TextStyle[] | null = null
+function getLabelHighlightStyles(baseStyle: TextStyle) {
+  if (labelHlStyle)
+    return labelHlStyle
+  labelHlStyle = HIGHLIGHT_COLORS.map(color => {
+    const style = baseStyle.clone()
+    style.fill = color
+    // style.fontWeight = 'bold'
+    return style
+  })
+  return labelHlStyle
+}
+
+let detailsHlStyle: TextStyle[] | null = null
+function getDetailsHighlightStyles(baseStyle: TextStyle) {
+  if (detailsHlStyle)
+    return detailsHlStyle
+  detailsHlStyle = HIGHLIGHT_COLORS.map(color => {
+    const style = baseStyle.clone()
+    style.fill = color
+    style.fontWeight = 'bold'
+    return style
+  })
+  return detailsHlStyle
 }
