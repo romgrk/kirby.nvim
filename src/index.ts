@@ -1,16 +1,8 @@
 import * as fzy from 'fzy-lua-native'
 import path from './path'
 import { getIcon } from './icons'
-import { Selector, Entry, AcceptFn } from './components/Selector'
-
-export type Picker =
-  (
-    | { values: string[] | ((this: void, ...args: any[]) => string[]) }
-    | { entries: Entry[] | ((this: void, ...args: any[]) => Entry[]) }
-  ) &
-  {
-    onAccept: AcceptFn | string,
-  }
+import { Picker } from './types'
+import { Selector, Entry } from './components/Selector'
 
 export let selector: Selector | null = null
 export const pickers = {} as Record<string, Picker>
@@ -40,7 +32,7 @@ export function open(this: void, opts: Picker, ...args: any[]) {
       }
 
   selector?.close()
-  selector = new Selector()
+  selector = new Selector(opts)
   selector.setEntries(entries)
   selector.onChange(input => {
     const sensitive = input !== input.toLowerCase()
@@ -69,18 +61,19 @@ export function close() {
   selector = null
 }
 
-export function register(this: void, name: string, opts: Picker) {
-  pickers[name] = opts
+export function register(this: void, id: string, opts: Picker) {
+  pickers[id] = opts
 }
 
-export function openPickerByName(this: void, name: string, ...args: any[]) {
-  if (pickers[name] !== undefined)
-    open(pickers[name], args)
+export function openPickerByID(this: void, id: string, ...args: any[]) {
+  if (pickers[id] !== undefined)
+    open(pickers[id], args)
   else
-    print(`Could not find picker ${name}`)
+    print(`Could not find picker ${id}`)
 }
 
 register('file', {
+  name: 'Files',
   entries: (args: any[]) => {
     const [directory = '.'] = args
     const entries =
@@ -106,5 +99,5 @@ register('file', {
 })
 
 export function openFilePicker(this: void, directory: string = '.') {
-  openPickerByName('file', directory)
+  openPickerByID('file', directory)
 }

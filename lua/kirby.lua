@@ -2951,11 +2951,12 @@ end
 local cellPixels = settings.DIMENSIONS.cell_pixels
 local screenCells = settings.DIMENSIONS.screen_cells
 local setKeymap = vim.api.nvim_buf_set_keymap
+local COLOR = {FOCUS = 1919121}
 ____exports.Selector = __TS__Class()
 local Selector = ____exports.Selector
 Selector.name = "Selector"
 __TS__ClassExtends(Selector, EventEmitter)
-function Selector.prototype.____constructor(self)
+function Selector.prototype.____constructor(self, opts)
     EventEmitter.prototype.____constructor(self)
     self.onMountInput = function(____, bufferId)
         setKeymap(
@@ -3008,10 +3009,14 @@ function Selector.prototype.____constructor(self)
     local ____TS__New_result_5 = __TS__New(Container)
     self.stage = ____TS__New_result_5
     local stage = ____TS__New_result_5
+    local hlFloat = editor:getHighlight("NormalFloat")
+    local backgroundColor = hlFloat.background or 4408131
+    local foregroundColor = hlFloat.foreground or 16777215
+    local inputBorderColor = 13421772
     local background = stage:addChild(__TS__New(Graphics))
     background.x = 0
     background.y = 0
-    background:beginFill(4080982)
+    background:beginFill(backgroundColor)
     background:drawRoundedRect(
         0,
         0,
@@ -3020,7 +3025,7 @@ function Selector.prototype.____constructor(self)
         20
     )
     background:endFill()
-    background:lineStyle(2, 2106156, 1)
+    background:lineStyle(2, 2302755, 1)
     background:drawRoundedRect(
         0,
         0,
@@ -3031,8 +3036,8 @@ function Selector.prototype.____constructor(self)
     local ____temp_6 = stage:addChild(__TS__New(Input, {
         padding = 5,
         width = width - 4 * cw,
-        backgroundColor = 5199981,
-        borderColor = 14540253,
+        backgroundColor = backgroundColor - 328965,
+        borderColor = inputBorderColor,
         borderWidth = 1,
         borderRadius = 5
     }))
@@ -3042,6 +3047,16 @@ function Selector.prototype.____constructor(self)
     input.y = 1 * ch
     input:onMount(self.onMountInput)
     self.focus = nil
+    if opts.name ~= nil then
+        local name = __TS__New(
+            Text,
+            opts.name,
+            __TS__New(TextStyle, {fill = inputBorderColor, fontSize = settings.DEFAULT_FONT_SIZE * 0.8})
+        )
+        name.x = paddingX
+        name.y = 0
+        stage:addChild(name)
+    end
     local containerY = input.y + input.height + 0.5 * ch
     local containerHeight = height - containerY - paddingY
     local ____temp_7 = stage:addChild(__TS__New(Graphics))
@@ -3049,10 +3064,8 @@ function Selector.prototype.____constructor(self)
     local container = ____temp_7
     container.x = paddingX
     container.y = input.y + input.height + 0.5 * ch
-    local hlNormal = editor:getHighlight("NormalFloat")
-    local color = hlNormal.foreground or 16777215
-    self.labelStyle = __TS__New(TextStyle, {fill = color})
-    self.detailsStyle = __TS__New(TextStyle, {fill = color - 3158064, fontSize = TextStyle.defaultStyle.fontSize * 0.9})
+    self.labelStyle = __TS__New(TextStyle, {fill = foregroundColor})
+    self.detailsStyle = __TS__New(TextStyle, {fill = foregroundColor - 1381653, fontSize = TextStyle.defaultStyle.fontSize * 0.9})
     self.maxEntries = math.floor(containerHeight / ch)
     self.entries = {}
     self.activeIndex = -1
@@ -3105,8 +3118,18 @@ function Selector.prototype.setEntries(self, entries)
         self.focus = ____temp_8
         local focus = ____temp_8
         focus.y = yForIndex(nil, self.activeIndex)
-        focus:beginFill(2898559)
-        focus:drawRoundedRect(
+        local bg = focus:addChild(__TS__New(Graphics))
+        bg:beginFill(COLOR.FOCUS)
+        bg:drawRoundedRect(
+            0 - 5,
+            0,
+            self.width - 2 * self.paddingX + 10,
+            ch,
+            5
+        )
+        local border = focus:addChild(__TS__New(Graphics))
+        border:lineStyle(2, COLOR.FOCUS + 2105376, 1)
+        border:drawRoundedRect(
             0 - 5,
             0,
             self.width - 2 * self.paddingX + 10,
@@ -3234,6 +3257,11 @@ labelHlStyle = nil
 detailsHlStyle = nil
 return ____exports
  end,
+["types"] = function(...) 
+--[[ Generated with https://github.com/TypeScriptToLua/TypeScriptToLua ]]
+local ____exports = {}
+return ____exports
+ end,
 ["index"] = function(...) 
 local ____lualib = require("lualib_bundle")
 local __TS__ArrayMap = ____lualib.__TS__ArrayMap
@@ -3274,7 +3302,7 @@ function ____exports.open(opts, ...)
     if ____opt_0 ~= nil then
         ____exports.selector:close()
     end
-    ____exports.selector = __TS__New(Selector)
+    ____exports.selector = __TS__New(Selector, opts)
     ____exports.selector:setEntries(entries)
     ____exports.selector:onChange(function(____, input)
         local sensitive = input ~= string.lower(input)
@@ -3314,20 +3342,21 @@ function ____exports.close(self)
     end
     ____exports.selector = nil
 end
-function ____exports.register(name, opts)
-    ____exports.pickers[name] = opts
+function ____exports.register(id, opts)
+    ____exports.pickers[id] = opts
 end
-function ____exports.openPickerByName(name, ...)
+function ____exports.openPickerByID(id, ...)
     local args = {...}
-    if ____exports.pickers[name] ~= nil then
-        ____exports.open(____exports.pickers[name], args)
+    if ____exports.pickers[id] ~= nil then
+        ____exports.open(____exports.pickers[id], args)
     else
-        print("Could not find picker " .. name)
+        print("Could not find picker " .. id)
     end
 end
 ____exports.register(
     "file",
     {
+        name = "Files",
         entries = function(args)
             local directory = unpack(args)
             if directory == nil then
@@ -3370,7 +3399,7 @@ function ____exports.openFilePicker(directory)
     if directory == nil then
         directory = "."
     end
-    ____exports.openPickerByName("file", directory)
+    ____exports.openPickerByID("file", directory)
 end
 return ____exports
  end,

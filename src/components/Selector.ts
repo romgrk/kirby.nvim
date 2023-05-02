@@ -9,6 +9,7 @@ import {
   TextStyle,
   Input,
 } from 'kui'
+import { Picker } from '../types'
 import { HIGHLIGHT_COLORS } from '../constants'
 
 const cellPixels = settings.DIMENSIONS.cell_pixels
@@ -35,6 +36,10 @@ export type Events = {
   didClose: [],
 }
 
+const COLOR = {
+  FOCUS: 0x1D4891,
+}
+
 export class Selector extends EventEmitter<Events> {
   width: number
   height: number
@@ -51,7 +56,7 @@ export class Selector extends EventEmitter<Events> {
   entries: Entry[]
   activeIndex: number
 
-  constructor() {
+  constructor(opts: Picker) {
     super()
 
     const cw = cellPixels.width
@@ -65,20 +70,25 @@ export class Selector extends EventEmitter<Events> {
     const renderer = this.renderer = new Renderer({ col: 10, row: 5, width, height })
     const stage = this.stage = new Container()
 
+    const hlFloat = editor.getHighlight('NormalFloat')
+    const backgroundColor = hlFloat.background ?? 0x434343
+    const foregroundColor = hlFloat.foreground ?? 0xffffff
+    const inputBorderColor = 0xcccccc
+
     const background = stage.addChild(new Graphics())
     background.x = 0
     background.y = 0
-    background.beginFill(0x3e4556)
+    background.beginFill(backgroundColor)
     background.drawRoundedRect(0, 0, width, height, 20)
     background.endFill()
-    background.lineStyle(2, 0x20232C, 1)
+    background.lineStyle(2, 0x232323, 1)
     background.drawRoundedRect(0, 0, width, height, 20)
 
     const input = this.input = stage.addChild(new Input({
       padding: 5,
       width: width - 4 * cw,
-      backgroundColor: 0x4F586D,
-      borderColor: 0xdddddd,
+      backgroundColor: backgroundColor - 0x050505,
+      borderColor: inputBorderColor,
       borderWidth: 1,
       borderRadius: 5,
     }))
@@ -88,20 +98,25 @@ export class Selector extends EventEmitter<Events> {
 
     this.focus = null
 
+    if (opts.name !== undefined) {
+      const name = new Text(opts.name, new TextStyle({
+        fill: inputBorderColor,
+        fontSize: settings.DEFAULT_FONT_SIZE * 0.8,
+      }))
+      name.x = paddingX
+      name.y = 0
+      stage.addChild(name)
+    }
+
     const containerY = input.y + input.height + 0.5 * ch
     const containerHeight = height - containerY - paddingY
     const container = this.container = stage.addChild(new Graphics())
     container.x = paddingX
     container.y = input.y + input.height + 0.5 * ch
-    // container.lineStyle(2, 0x20232C, 1)
-    // container.drawRect(0, 0, width - paddingX * 2, containerHeight)
 
-    const hlNormal = editor.getHighlight('NormalFloat')
-    const color = hlNormal.foreground ?? 0xffffff
-
-    this.labelStyle = new TextStyle({ fill: color })
+    this.labelStyle = new TextStyle({ fill: foregroundColor })
     this.detailsStyle = new TextStyle({
-      fill: color - 0x303030,
+      fill: foregroundColor - 0x151515,
       fontSize: TextStyle.defaultStyle.fontSize as number * 0.9,
     })
 
@@ -170,8 +185,12 @@ export class Selector extends EventEmitter<Events> {
     if (this.activeIndex !== -1) {
       const focus = this.focus = container.addChild(new Graphics())
       focus.y = yForIndex(this.activeIndex)
-      focus.beginFill(0x2C3A7F)
-      focus.drawRoundedRect(0 - 5, 0, this.width - 2 * this.paddingX + 10, ch, 5)
+      const bg = focus.addChild(new Graphics())
+      bg.beginFill(COLOR.FOCUS)
+      bg.drawRoundedRect(0 - 5, 0, this.width - 2 * this.paddingX + 10, ch, 5)
+      const border = focus.addChild(new Graphics())
+      border.lineStyle(2, COLOR.FOCUS + 0x202020, 1)
+      border.drawRoundedRect(0 - 5, 0, this.width - 2 * this.paddingX + 10, ch, 5)
     }
 
     let i = 0
