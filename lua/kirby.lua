@@ -2906,7 +2906,7 @@ local __TS__StringSlice = ____lualib.__TS__StringSlice
 local __TS__StringAccess = ____lualib.__TS__StringAccess
 local __TS__ArrayMap = ____lualib.__TS__ArrayMap
 local ____exports = {}
-local getLabelHighlightStyles, getDetailsHighlightStyles, labelHlStyle, detailsHlStyle
+local getLabelHighlightStyles, getDetailsHighlightStyles, getWindowDimensions, labelHlStyle, detailsHlStyle
 local ____kui = require("kui")
 local settings = ____kui.settings
 local editor = ____kui.editor
@@ -2947,6 +2947,12 @@ function getDetailsHighlightStyles(self, baseStyle)
         end
     )
     return detailsHlStyle
+end
+function getWindowDimensions(self)
+    local row, col = unpack(vim.fn.win_screenpos(0))
+    local width = vim.fn.winwidth(0)
+    local height = vim.fn.winheight(0)
+    return {row = row, col = col, width = width, height = height}
 end
 local cellPixels = settings.DIMENSIONS.cell_pixels
 local screenCells = settings.DIMENSIONS.screen_cells
@@ -2991,7 +2997,15 @@ function Selector.prototype.____constructor(self, opts)
     end
     local cw = cellPixels.width
     local ch = cellPixels.height
-    local ____temp_0 = math.max(10, screenCells.width - 20) * cw
+    local window = getWindowDimensions(nil)
+    local offsetHorizontal = 5
+    local row = window.row + 2
+    local col = window.col + offsetHorizontal
+    local availableWidth = window.width
+    local ____temp_0 = math.max(
+        10,
+        math.min(availableWidth - offsetHorizontal * 2, 120)
+    ) * cw
     self.width = ____temp_0
     local width = ____temp_0
     local ____temp_1 = 20 * ch
@@ -3003,7 +3017,7 @@ function Selector.prototype.____constructor(self, opts)
     local ____temp_3 = 1 * ch
     self.paddingY = ____temp_3
     local paddingY = ____temp_3
-    local ____TS__New_result_4 = __TS__New(Renderer, {col = 10, row = 5, width = width, height = height})
+    local ____TS__New_result_4 = __TS__New(Renderer, {col = col, row = row, width = width, height = height})
     self.renderer = ____TS__New_result_4
     local renderer = ____TS__New_result_4
     local ____TS__New_result_5 = __TS__New(Container)

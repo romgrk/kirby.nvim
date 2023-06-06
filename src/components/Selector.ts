@@ -62,12 +62,18 @@ export class Selector extends EventEmitter<Events> {
     const cw = cellPixels.width
     const ch = cellPixels.height
 
-    const width  = this.width = Math.max(10, screenCells.width - 20) * cw
+    const window = getWindowDimensions()
+    const offsetHorizontal = 5
+    const row = window.row + 2
+    const col = window.col + offsetHorizontal
+    const availableWidth = window.width
+
+    const width  = this.width = Math.max(10, Math.min(availableWidth - offsetHorizontal * 2, 120)) * cw
     const height = this.height = 20 * ch
     const paddingX = this.paddingX = 2 * cw
     const paddingY = this.paddingY = 1 * ch
 
-    const renderer = this.renderer = new Renderer({ col: 10, row: 5, width, height })
+    const renderer = this.renderer = new Renderer({ col, row, width, height })
     const stage = this.stage = new Container()
 
     const hlFloat = editor.getHighlight('NormalFloat')
@@ -336,4 +342,11 @@ function getDetailsHighlightStyles(baseStyle: TextStyle) {
     return style
   })
   return detailsHlStyle
+}
+
+function getWindowDimensions() {
+  const [row, col] = vim.fn.win_screenpos(0) as number[]
+  const width = vim.fn.winwidth(0)
+  const height = vim.fn.winheight(0)
+  return { row, col, width, height }
 }
