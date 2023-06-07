@@ -9,9 +9,9 @@ import {
   TextStyle,
   Input,
 } from 'kui'
-import type { ChangeFn, Entry, Picker } from '../types'
+import type { AcceptFn, ChangeFn, Entry, Picker } from '../types'
 import { HIGHLIGHT_COLORS } from '../constants'
-import { onChangeFZY } from '../pick'
+import { onChangeDefault } from '../pick'
 
 const cellPixels = settings.DIMENSIONS.cell_pixels
 const screenCells = settings.DIMENSIONS.screen_cells
@@ -154,7 +154,7 @@ export class Selector extends EventEmitter<Events> {
     this.entryHeight = this.opts.singleLine ? 2 * ch : 3 * ch
 
     this.onAccept(opts.onAccept)
-    this.onChange(opts.onChange ?? onChangeFZY)
+    this.onChange(opts.onChange ?? onChangeDefault)
   }
 
   get prefix() {
@@ -174,10 +174,10 @@ export class Selector extends EventEmitter<Events> {
     this.on('didClose', fn as any)
   }
 
-  onAccept(callback: string | ((this: void, entry: Entry) => void)) {
+  onAccept(callback: string | AcceptFn) {
     const fn =
       typeof callback === 'function' ?
-        (entry: Entry) => { callback(entry) } :
+        (entry: Entry) => { callback(entry, this.args) } :
         (entry: Entry) => { vim.cmd(`${callback} ${entry.text}`) }
 
     this.on('accept', fn)

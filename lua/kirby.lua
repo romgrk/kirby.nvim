@@ -2580,10 +2580,10 @@ function ____exports.getEntries(opts, args)
     end
     return entries
 end
-function ____exports.onChangeFZY(selector, input)
+function ____exports.fuzzyMatch(self, entries, input)
     local sensitive = input ~= string.lower(input)
     local filtered = __TS__ArrayFilter(
-        selector.initialEntries,
+        entries,
         function(____, e, i)
             local hasMatch = fzy.has_match(input, e.text, sensitive)
             if hasMatch then
@@ -2604,7 +2604,10 @@ function ____exports.onChangeFZY(selector, input)
         filtered,
         function(____, a, b) return (b.score or 0) - (a.score or 0) end
     )
-    selector:setEntries(filtered)
+    return filtered
+end
+function ____exports.onChangeDefault(selector, input)
+    selector:setEntries(____exports.fuzzyMatch(nil, selector.initialEntries, input))
 end
 return ____exports
  end,
@@ -2632,7 +2635,7 @@ local Input = ____kui.Input
 local ____constants = require("constants")
 local HIGHLIGHT_COLORS = ____constants.HIGHLIGHT_COLORS
 local ____pick = require("pick")
-local onChangeFZY = ____pick.onChangeFZY
+local onChangeDefault = ____pick.onChangeDefault
 function getWindowDimensions(self)
     local row, col = unpack(vim.fn.win_screenpos(0))
     local width = vim.fn.winwidth(0)
@@ -2796,7 +2799,7 @@ function Selector.prototype.____constructor(self, opts, args)
     self.activeIndex = -1
     self.entryHeight = self.opts.singleLine and 2 * ch or 3 * ch
     self:onAccept(opts.onAccept)
-    self:onChange(opts.onChange or onChangeFZY)
+    self:onChange(opts.onChange or onChangeDefault)
 end
 __TS__SetDescriptor(
     Selector.prototype,
@@ -2817,7 +2820,7 @@ function Selector.prototype.onDidClose(self, fn)
 end
 function Selector.prototype.onAccept(self, callback)
     local fn = type(callback) == "function" and (function(____, entry)
-        callback(entry)
+        callback(entry, self.args)
     end) or (function(____, entry)
         vim.cmd((callback .. " ") .. entry.text)
     end)
@@ -3032,7 +3035,7 @@ local ____Selector = require("components.Selector")
 local Selector = ____Selector.Selector
 local ____pick = require("pick")
 local getEntries = ____pick.getEntries
-local onChangeFZY = ____pick.onChangeFZY
+local onChangeDefault = ____pick.onChangeDefault
 ____exports.selector = nil
 ____exports.timer = nil
 ____exports.pickers = {}
@@ -3047,7 +3050,7 @@ function ____exports.open(opts, args)
     end
     ____exports.selector = __TS__New(Selector, opts, args)
     ____exports.selector:setInitialEntries(getEntries(opts, args))
-    ____exports.selector:onChange(onChangeFZY)
+    ____exports.selector:onChange(opts.onChange or onChangeDefault)
     ____exports.selector:onDidClose(function()
         ____exports.selector = nil
     end)
@@ -3062,19 +3065,19 @@ function ____exports.open(opts, args)
         end
     )
 end
-function ____exports.select(self, n)
+function ____exports.select(n)
     local ____opt_7 = ____exports.selector
     if ____opt_7 ~= nil then
         ____exports.selector:select(n)
     end
 end
-function ____exports.accept(self)
+function ____exports.accept()
     local ____opt_9 = ____exports.selector
     if ____opt_9 ~= nil then
         ____exports.selector:accept()
     end
 end
-function ____exports.close(self)
+function ____exports.close()
     local ____opt_11 = ____exports.selector
     if ____opt_11 ~= nil then
         ____exports.selector:close()
@@ -3583,6 +3586,8 @@ local ____kui = require("kui")
 local Timer = ____kui.Timer
 local ____api = require("api")
 local openPickerByID = ____api.openPickerByID
+local ____pick = require("pick")
+local fuzzyMatch = ____pick.fuzzyMatch
 local commands = nil
 local entries = nil
 local function setup(self)
@@ -3641,6 +3646,7 @@ local run = {
     prefixColor = "keyword",
     hasIcon = false,
     singleLine = true,
+    detailsAlign = "right",
     entries = function(args)
         setup(nil)
         local name = unpack(args)
@@ -3685,13 +3691,13 @@ local run = {
             end
         until true
     end,
-    onAccept = function(entry)
-        local command = entry.data
-        if command.nargs == "0" then
-            vim.cmd(command.name)
-        else
-            vim.fn.feedkeys((":" .. command.name) .. " ", "n")
-        end
+    onChange = function(selector, input)
+        local entries = fuzzyMatch(nil, selector.initialEntries, input)
+        entries[#entries + 1] = {label = input, text = input, value = input, details = "(new entry)"}
+        selector:setEntries(entries)
+    end,
+    onAccept = function(entry, args)
+        vim.cmd((tostring(args[1]) .. " ") .. entry.value)
     end
 }
 ____exports.default = {list = list, run = run}

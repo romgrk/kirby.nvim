@@ -1,7 +1,7 @@
 import { Timer } from 'kui'
 import { Picker } from './types'
 import { Selector } from './components/Selector'
-import { getEntries, onChangeFZY } from './pick'
+import { getEntries, onChangeDefault } from './pick'
 
 export let selector: Selector | null = null
 export let timer: Timer | null = null
@@ -13,7 +13,7 @@ export function open(this: void, opts: Picker, args: any[]) {
 
   selector = new Selector(opts, args)
   selector.setInitialEntries(getEntries(opts, args))
-  selector.onChange(onChangeFZY)
+  selector.onChange(opts.onChange ?? onChangeDefault)
   selector.onDidClose(() => {
     selector = null
   })
@@ -22,15 +22,15 @@ export function open(this: void, opts: Picker, args: any[]) {
   })
 }
 
-export function select(n: number) {
+export function select(this: void, n: number) {
   selector?.select(n)
 }
 
-export function accept() {
+export function accept(this: void) {
   selector?.accept()
 }
 
-export function close() {
+export function close(this: void) {
   selector?.close()
   selector = null
 }

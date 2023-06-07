@@ -1,5 +1,6 @@
 import { Timer } from 'kui'
 import { openPickerByID } from '../api'
+import { fuzzyMatch } from '../pick'
 import type { Entry, Picker } from '../types'
 
 type Command = {
@@ -69,6 +70,7 @@ const run = {
   prefixColor: 'keyword',
   hasIcon: false,
   singleLine: true,
+  detailsAlign: 'right',
   entries: function(this: void, args: any[]) {
     setup()
 
@@ -103,13 +105,18 @@ const run = {
       default: return []
     }
   },
-  onAccept: (entry: Entry) => {
-    const command = entry.data as Command
-    if (command.nargs === '0') {
-      vim.cmd(command.name)
-    } else {
-      vim.fn.feedkeys(':' + command.name + ' ', 'n')
-    }
+  onChange: (selector, input) => {
+    const entries = fuzzyMatch(selector.initialEntries, input)
+    entries.push({
+      label: input,
+      text: input,
+      value: input,
+      details: '(new entry)',
+    })
+    selector.setEntries(entries)
+  },
+  onAccept: (entry: Entry, args: any[]) => {
+    vim.cmd(`${args[0]} ${entry.value}`)
   },
 } as Picker
 

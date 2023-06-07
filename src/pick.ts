@@ -16,13 +16,9 @@ export function getEntries(this: void, opts: Picker, args: any[]) {
   return entries
 }
 
-export function onChangeFZY(
-  this: void,
-  selector: Selector,
-  input: string
-) {
+export function fuzzyMatch(entries: Entry[], input: string) {
   const sensitive = input !== input.toLowerCase()
-  const filtered = selector.initialEntries.filter((e, i) => {
+  const filtered = entries.filter((e, i) => {
     const hasMatch = fzy.has_match(input, e.text, sensitive)
     if (hasMatch) {
       e.score = fzy.score(input, e.text, sensitive)
@@ -34,5 +30,13 @@ export function onChangeFZY(
     return hasMatch
   })
   filtered.sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
-  selector.setEntries(filtered)
+  return filtered
+}
+
+export function onChangeDefault(
+  this: void,
+  selector: Selector,
+  input: string
+) {
+  selector.setEntries(fuzzyMatch(selector.initialEntries, input))
 }

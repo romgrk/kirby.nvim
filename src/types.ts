@@ -14,7 +14,7 @@ export type Entry = {
   detailsOffset?: number,
 }
 
-export type AcceptFn = (this: void, entry: Entry) => void
+export type AcceptFn = (this: void, entry: Entry, args: any[]) => void
 export type ChangeFn = (this: void, selector: Selector, input: string) => void
 
 export type Picker =
