@@ -1,11 +1,11 @@
 # kirby.nvim
 
-##### Content
+Fuzzy picker based on [kui.nvim](https://github.com/romgrk/kui.nvim).
+
+###### Table of contents
  - [Installation](#installation)
  - [Usage](#usage)
  - [Adding pickers](#adding-pickers)
-
-Fuzzy picker based on [kui.nvim](https://github.com/romgrk/kui.nvim).
 
 ![multiline](./assets/picker-multiline.png)
 ![singleline](./assets/picker-singleline.png)
