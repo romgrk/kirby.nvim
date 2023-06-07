@@ -2895,6 +2895,11 @@ end
 ____exports.default = posix
 return ____exports
  end,
+["types"] = function(...) 
+--[[ Generated with https://github.com/TypeScriptToLua/TypeScriptToLua ]]
+local ____exports = {}
+return ____exports
+ end,
 ["components.Selector"] = function(...) 
 local ____lualib = require("lualib_bundle")
 local __TS__Class = ____lualib.__TS__Class
@@ -3241,11 +3246,6 @@ local function getDetailsHighlightStyles(self, baseStyle)
     )
     return detailsHlStyle
 end
-return ____exports
- end,
-["types"] = function(...) 
---[[ Generated with https://github.com/TypeScriptToLua/TypeScriptToLua ]]
-local ____exports = {}
 return ____exports
  end,
 ["index"] = function(...) 

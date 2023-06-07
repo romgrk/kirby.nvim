@@ -1,9 +1,33 @@
-import { Entry, AcceptFn } from './components/Selector'
+
+export type Entry = {
+  icon?: string,
+  iconColor?: string,
+  label: string,
+  text: string,
+  value: string,
+  details?: string,
+  score?: number,
+  positions?: number[],
+  labelOffset?: number,
+  detailsOffset?: number,
+}
+
+export type AcceptFn = (entry: Entry) => void
 
 export type Picker =
   (
-    | { values: string[] | ((this: void, ...args: any[]) => string[]) }
-    | { entries: Entry[] | ((this: void, ...args: any[]) => Entry[]) }
+    | {
+        /**
+         * A function that returns a list of string values to pick.
+         */
+        values: string[] | ((this: void, ...args: any[]) => string[])
+      }
+    | {
+        /**
+         * A function that returns a list of entries to pick.
+         */
+        entries: Entry[] | ((this: void, ...args: any[]) => Entry[])
+      }
   ) &
   {
     /** The name, the small label above the input */

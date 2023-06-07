@@ -1,8 +1,8 @@
 import * as fzy from 'fzy-lua-native'
 import path from './path'
 import { getIcon } from './icons'
-import { Picker } from './types'
-import { Selector, Entry } from './components/Selector'
+import { Entry, Picker } from './types'
+import { Selector } from './components/Selector'
 
 export let selector: Selector | null = null
 export const pickers = {} as Record<string, Picker>

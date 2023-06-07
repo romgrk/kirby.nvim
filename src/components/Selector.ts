@@ -9,27 +9,13 @@ import {
   TextStyle,
   Input,
 } from 'kui'
-import { Picker } from '../types'
+import { Entry, Picker } from '../types'
 import { HIGHLIGHT_COLORS } from '../constants'
 
 const cellPixels = settings.DIMENSIONS.cell_pixels
 const screenCells = settings.DIMENSIONS.screen_cells
 
 const setKeymap = vim.api.nvim_buf_set_keymap
-
-export type Entry = {
-  icon?: string,
-  iconColor?: string,
-  label: string,
-  text: string,
-  value: string,
-  details?: string,
-  score?: number,
-  positions?: number[],
-  labelOffset?: number,
-  detailsOffset?: number,
-}
-export type AcceptFn = (entry: Entry) => void
 
 export type Events = {
   accept: [entry: Entry],
