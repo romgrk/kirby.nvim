@@ -37,6 +37,8 @@ Select files in the (current) directory. Uses `fd` if available, otherwise `git 
 
 Select ctags for the current file. Requires `universal-ctags`.
 
+![ctags](./assets/picker-ctags.png)
+
 ## Adding pickers
 
 A few examples from my own config:
