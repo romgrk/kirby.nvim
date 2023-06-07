@@ -3255,6 +3255,7 @@ local __TS__New = ____lualib.__TS__New
 local __TS__ArrayForEach = ____lualib.__TS__ArrayForEach
 local __TS__ArrayFilter = ____lualib.__TS__ArrayFilter
 local __TS__ArraySort = ____lualib.__TS__ArraySort
+local __TS__ObjectKeys = ____lualib.__TS__ObjectKeys
 local __TS__StringTrim = ____lualib.__TS__StringTrim
 local __TS__StringSplit = ____lualib.__TS__StringSplit
 local ____exports = {}
@@ -3320,6 +3321,9 @@ function ____exports.open(opts, ...)
     ____exports.selector:onDidClose(function()
         ____exports.selector = nil
     end)
+end
+function ____exports.listPickers(self)
+    return __TS__ObjectKeys(____exports.pickers)
 end
 function ____exports.close(self)
     local ____opt_4 = ____exports.selector

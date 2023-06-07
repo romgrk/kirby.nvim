@@ -56,6 +56,10 @@ export function open(this: void, opts: Picker, ...args: any[]) {
   })
 }
 
+export function listPickers(): string[] {
+  return Object.keys(pickers)
+}
+
 export function close() {
   selector?.close()
   selector = null
