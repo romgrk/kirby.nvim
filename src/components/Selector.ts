@@ -30,6 +30,7 @@ const COLOR = {
 const DESIRED_CELL_WIDTH = 100
 
 export class Selector extends EventEmitter<Events> {
+  args: any[]
   opts: Picker
   width: number
   height: number
@@ -54,10 +55,10 @@ export class Selector extends EventEmitter<Events> {
   entryHeight: number
   separatorColor: number
 
-  constructor(opts: Picker) {
+  constructor(opts: Picker, args: any[]) {
     super()
+    this.args = args
     this.opts = Object.assign({}, opts)
-    this.opts.prefix = opts.prefix ?? ''
     this.opts.singleLine = opts.singleLine === undefined ? true : opts.singleLine
     opts = this.opts
 
@@ -98,7 +99,7 @@ export class Selector extends EventEmitter<Events> {
     background.lineStyle(2, borderColor, 1)
     background.drawRoundedRect(0, 0, width, height, 20)
 
-    const prefix = opts.prefix!
+    const prefix = this.prefix
     const inputX = paddingX + prefix.length * cw
     const input = this.input = stage.addChild(new Input({
       width: width - 4 * cw - prefix.length * cw,
@@ -119,7 +120,7 @@ export class Selector extends EventEmitter<Events> {
       name.y = 0
       stage.addChild(name)
     }
-    if (opts.prefix !== undefined) {
+    if (prefix !== '') {
       const color =
         opts.prefixColor === undefined ?
           titleTextColor :
@@ -127,13 +128,10 @@ export class Selector extends EventEmitter<Events> {
           opts.prefixColor :
           editor.getHighlight(opts.prefixColor).foreground || 0xffffff
 
-      const prefix = new Text(opts.prefix, new TextStyle({
-        fill: color,
-        // fontSize: settings.DEFAULT_FONT_SIZE * 0.8,
-      }))
-      prefix.x = paddingX
-      prefix.y = 1 * ch
-      stage.addChild(prefix)
+      const element = new Text(prefix, new TextStyle({ fill: color }))
+      element.x = paddingX
+      element.y = 1 * ch
+      stage.addChild(element)
     }
 
     const containerY = input.y + input.height + 0.5 * ch
@@ -157,6 +155,12 @@ export class Selector extends EventEmitter<Events> {
 
     this.onAccept(opts.onAccept)
     this.onChange(opts.onChange ?? onChangeFZY)
+  }
+
+  get prefix() {
+    return typeof this.opts.prefix === 'function' ?
+      this.opts.prefix(this.args) :
+      this.opts.prefix ?? ''
   }
 
   onChange(fn: ChangeFn) {
@@ -201,10 +205,10 @@ export class Selector extends EventEmitter<Events> {
   }
 
   onMountInput = (bufferId: number) => {
-    setKeymap(bufferId, 'i', '<CR>',  '<Esc>:lua require("kirby").selector:accept()<CR>', { noremap: true, silent: true })
-    setKeymap(bufferId, 'i', '<Esc>', '<Esc>:lua require("kirby").selector:close()<CR>',  { noremap: true, silent: true })
-    setKeymap(bufferId, 'i', '<A-j>', '<C-o>:lua require("kirby").selector:select(1)<CR>',  { noremap: true, silent: true })
-    setKeymap(bufferId, 'i', '<A-k>', '<C-o>:lua require("kirby").selector:select(-1)<CR>',  { noremap: true, silent: true })
+    setKeymap(bufferId, 'i', '<CR>',  '<Esc>:lua require("kirby").accept()<CR>', { noremap: true, silent: true })
+    setKeymap(bufferId, 'i', '<Esc>', '<Esc>:lua require("kirby").close()<CR>',  { noremap: true, silent: true })
+    setKeymap(bufferId, 'i', '<A-j>', '<C-o>:lua require("kirby").select(1)<CR>',  { noremap: true, silent: true })
+    setKeymap(bufferId, 'i', '<A-k>', '<C-o>:lua require("kirby").select(-1)<CR>',  { noremap: true, silent: true })
     vim.cmd('startinsert')
   }
 

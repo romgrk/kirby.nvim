@@ -23,13 +23,13 @@ export type Picker =
         /**
          * A function that returns a list of string values to pick.
          */
-        values: string[] | ((this: void, ...args: any[]) => string[])
+        values: string[] | ((this: void, args: any[]) => string[])
       }
     | {
         /**
          * A function that returns a list of entries to pick.
          */
-        entries: Entry[] | ((this: void, ...args: any[]) => Entry[])
+        entries: Entry[] | ((this: void, args: any[]) => Entry[])
       }
   ) &
   {
@@ -38,7 +38,7 @@ export type Picker =
     /** The name, the small label above the input */
     name?: string,
     /** The prefix, on the left of the input */
-    prefix?: string,
+    prefix?: string | ((this: void, ...args: any) => string),
     /**
      * The prefix color. 
      * If it's a number, it is used directly as a color.

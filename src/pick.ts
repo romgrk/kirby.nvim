@@ -6,11 +6,11 @@ export function getEntries(this: void, opts: Picker, args: any[]) {
   let entries: Entry[]
   if ('values' in opts) {
     const valuesOpt = opts.values
-    const values = typeof valuesOpt === 'function' ? valuesOpt(...args) : valuesOpt
+    const values = typeof valuesOpt === 'function' ? valuesOpt(args) : valuesOpt
     entries = values.map(v => ({ label: v, text: v, value: v }))
   } else {
     const entriesOpt = opts.entries 
-    entries = typeof entriesOpt === 'function' ? entriesOpt(...args) : entriesOpt
+    entries = typeof entriesOpt === 'function' ? entriesOpt(args) : entriesOpt
   }
 
   return entries

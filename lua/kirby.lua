@@ -2557,17 +2557,6 @@ ____exports.HIGHLIGHT_COLORS = {
 }
 return ____exports
  end,
-["icons"] = function(...) 
---[[ Generated with https://github.com/TypeScriptToLua/TypeScriptToLua ]]
-local ____exports = {}
-local devicons = require("nvim-web-devicons")
-local icons = devicons:get_icons()
-local defaultIcon = {icon = "", color = "#6E6E6E"}
-function ____exports.getIcon(self, filename, extname)
-    return icons[filename] or icons[string.sub(extname, 2)] or defaultIcon
-end
-return ____exports
- end,
 ["pick"] = function(...) 
 local ____lualib = require("lualib_bundle")
 local __TS__ArrayMap = ____lualib.__TS__ArrayMap
@@ -2580,14 +2569,14 @@ function ____exports.getEntries(opts, args)
     local entries
     if opts.values ~= nil then
         local valuesOpt = opts.values
-        local values = type(valuesOpt) == "function" and valuesOpt(unpack(args)) or valuesOpt
+        local values = type(valuesOpt) == "function" and valuesOpt(args) or valuesOpt
         entries = __TS__ArrayMap(
             values,
             function(____, v) return {label = v, text = v, value = v} end
         )
     else
         local entriesOpt = opts.entries
-        entries = type(entriesOpt) == "function" and entriesOpt(unpack(args)) or entriesOpt
+        entries = type(entriesOpt) == "function" and entriesOpt(args) or entriesOpt
     end
     return entries
 end
@@ -2625,6 +2614,7 @@ local __TS__Class = ____lualib.__TS__Class
 local __TS__ClassExtends = ____lualib.__TS__ClassExtends
 local __TS__ObjectAssign = ____lualib.__TS__ObjectAssign
 local __TS__New = ____lualib.__TS__New
+local __TS__SetDescriptor = ____lualib.__TS__SetDescriptor
 local __TS__ParseInt = ____lualib.__TS__ParseInt
 local __TS__ArrayMap = ____lualib.__TS__ArrayMap
 local ____exports = {}
@@ -2664,41 +2654,41 @@ ____exports.Selector = __TS__Class()
 local Selector = ____exports.Selector
 Selector.name = "Selector"
 __TS__ClassExtends(Selector, EventEmitter)
-function Selector.prototype.____constructor(self, opts)
+function Selector.prototype.____constructor(self, opts, args)
     EventEmitter.prototype.____constructor(self)
     self.onMountInput = function(____, bufferId)
         setKeymap(
             bufferId,
             "i",
             "<CR>",
-            "<Esc>:lua require(\"kirby\").selector:accept()<CR>",
+            "<Esc>:lua require(\"kirby\").accept()<CR>",
             {noremap = true, silent = true}
         )
         setKeymap(
             bufferId,
             "i",
             "<Esc>",
-            "<Esc>:lua require(\"kirby\").selector:close()<CR>",
+            "<Esc>:lua require(\"kirby\").close()<CR>",
             {noremap = true, silent = true}
         )
         setKeymap(
             bufferId,
             "i",
             "<A-j>",
-            "<C-o>:lua require(\"kirby\").selector:select(1)<CR>",
+            "<C-o>:lua require(\"kirby\").select(1)<CR>",
             {noremap = true, silent = true}
         )
         setKeymap(
             bufferId,
             "i",
             "<A-k>",
-            "<C-o>:lua require(\"kirby\").selector:select(-1)<CR>",
+            "<C-o>:lua require(\"kirby\").select(-1)<CR>",
             {noremap = true, silent = true}
         )
         vim.cmd("startinsert")
     end
+    self.args = args
     self.opts = __TS__ObjectAssign({}, opts)
-    self.opts.prefix = opts.prefix or ""
     local ____self_opts_1 = self.opts
     local ____temp_0
     if opts.singleLine == nil then
@@ -2760,7 +2750,7 @@ function Selector.prototype.____constructor(self, opts)
         height,
         20
     )
-    local prefix = opts.prefix
+    local prefix = self.prefix
     local inputX = paddingX + #prefix * cw
     local ____temp_7 = stage:addChild(__TS__New(Input, {width = width - 4 * cw - #prefix * cw, color = foregroundColor}))
     self.input = ____temp_7
@@ -2779,16 +2769,16 @@ function Selector.prototype.____constructor(self, opts)
         name.y = 0
         stage:addChild(name)
     end
-    if opts.prefix ~= nil then
+    if prefix ~= "" then
         local color = opts.prefixColor == nil and titleTextColor or (type(opts.prefixColor) == "number" and opts.prefixColor or (editor:getHighlight(opts.prefixColor).foreground or 16777215))
-        local prefix = __TS__New(
+        local element = __TS__New(
             Text,
-            opts.prefix,
+            prefix,
             __TS__New(TextStyle, {fill = color})
         )
-        prefix.x = paddingX
-        prefix.y = 1 * ch
-        stage:addChild(prefix)
+        element.x = paddingX
+        element.y = 1 * ch
+        stage:addChild(element)
     end
     local containerY = input.y + input.height + 0.5 * ch
     local containerHeight = height - containerY - paddingY
@@ -2808,6 +2798,14 @@ function Selector.prototype.____constructor(self, opts)
     self:onAccept(opts.onAccept)
     self:onChange(opts.onChange or onChangeFZY)
 end
+__TS__SetDescriptor(
+    Selector.prototype,
+    "prefix",
+    {get = function(self)
+        return type(self.opts.prefix) == "function" and self.opts.prefix(self.args) or (self.opts.prefix or "")
+    end},
+    true
+)
 function Selector.prototype.onChange(self, fn)
     local ____self = self
     self.input:onChange(function(self, input)
@@ -3021,6 +3019,99 @@ return ____exports
 ["types"] = function(...) 
 --[[ Generated with https://github.com/TypeScriptToLua/TypeScriptToLua ]]
 local ____exports = {}
+return ____exports
+ end,
+["api"] = function(...) 
+local ____lualib = require("lualib_bundle")
+local __TS__New = ____lualib.__TS__New
+local __TS__ObjectKeys = ____lualib.__TS__ObjectKeys
+local ____exports = {}
+local ____kui = require("kui")
+local Timer = ____kui.Timer
+local ____Selector = require("components.Selector")
+local Selector = ____Selector.Selector
+local ____pick = require("pick")
+local getEntries = ____pick.getEntries
+local onChangeFZY = ____pick.onChangeFZY
+____exports.selector = nil
+____exports.timer = nil
+____exports.pickers = {}
+function ____exports.open(opts, args)
+    local ____opt_0 = ____exports.timer
+    if ____opt_0 ~= nil then
+        ____exports.timer:stop()
+    end
+    local ____opt_2 = ____exports.selector
+    if ____opt_2 ~= nil then
+        ____exports.selector:close()
+    end
+    ____exports.selector = __TS__New(Selector, opts, args)
+    ____exports.selector:setInitialEntries(getEntries(opts, args))
+    ____exports.selector:onChange(onChangeFZY)
+    ____exports.selector:onDidClose(function()
+        ____exports.selector = nil
+    end)
+    local ____self_6 = Timer:wait(100)
+    ____self_6["then"](
+        ____self_6,
+        function()
+            local ____opt_4 = ____exports.selector
+            if ____opt_4 ~= nil then
+                ____exports.selector:render()
+            end
+        end
+    )
+end
+function ____exports.select(self, n)
+    local ____opt_7 = ____exports.selector
+    if ____opt_7 ~= nil then
+        ____exports.selector:select(n)
+    end
+end
+function ____exports.accept(self)
+    local ____opt_9 = ____exports.selector
+    if ____opt_9 ~= nil then
+        ____exports.selector:accept()
+    end
+end
+function ____exports.close(self)
+    local ____opt_11 = ____exports.selector
+    if ____opt_11 ~= nil then
+        ____exports.selector:close()
+    end
+    ____exports.selector = nil
+end
+function ____exports.listPickers(self)
+    return __TS__ObjectKeys(____exports.pickers)
+end
+function ____exports.register(opts)
+    ____exports.pickers[opts.id] = opts
+end
+function ____exports.openPickerByID(id, ...)
+    local args = {...}
+    if ____exports.pickers[id] ~= nil then
+        ____exports.open(____exports.pickers[id], args)
+    else
+        print("Could not find picker " .. id)
+    end
+end
+function ____exports.openFilePicker(directory)
+    if directory == nil then
+        directory = "."
+    end
+    ____exports.openPickerByID("files", directory)
+end
+return ____exports
+ end,
+["icons"] = function(...) 
+--[[ Generated with https://github.com/TypeScriptToLua/TypeScriptToLua ]]
+local ____exports = {}
+local devicons = require("nvim-web-devicons")
+local icons = devicons:get_icons()
+local defaultIcon = {icon = "", color = "#6E6E6E"}
+function ____exports.getIcon(self, filename, extname)
+    return icons[filename] or icons[string.sub(extname, 2)] or defaultIcon
+end
 return ____exports
  end,
 ["utils.lastIndexOf"] = function(...) 
@@ -3485,40 +3576,114 @@ return ____exports
 local ____lualib = require("lualib_bundle")
 local __TS__ObjectValues = ____lualib.__TS__ObjectValues
 local __TS__ArrayMap = ____lualib.__TS__ArrayMap
+local __TS__ArrayFind = ____lualib.__TS__ArrayFind
+local __TS__StringSplit = ____lualib.__TS__StringSplit
 local ____exports = {}
+local ____kui = require("kui")
+local Timer = ____kui.Timer
+local ____api = require("api")
+local openPickerByID = ____api.openPickerByID
 local commands = nil
 local entries = nil
-____exports.default = {
-    id = "commands",
+local function setup(self)
+    if not commands or not entries then
+        commands = __TS__ObjectValues(vim.api.nvim_get_commands({}))
+        entries = __TS__ArrayMap(
+            commands,
+            function(____, command)
+                local ____command_0 = command
+                local name = ____command_0.name
+                local definition = ____command_0.definition
+                return {
+                    label = name,
+                    details = definition,
+                    text = name,
+                    value = name,
+                    data = command
+                }
+            end
+        )
+        table.sort(
+            entries,
+            function(a, b) return a.text < b.text end
+        )
+    end
+end
+local list = {
+    id = "commands-list",
     prefix = "> ",
     prefixColor = "keyword",
     hasIcon = false,
     singleLine = true,
     detailsAlign = "right",
     entries = function(args)
-        if not commands or not entries then
-            commands = __TS__ObjectValues(vim.api.nvim_get_commands({}))
-            entries = __TS__ArrayMap(
-                commands,
-                function(____, command)
-                    local ____command_0 = command
-                    local name = ____command_0.name
-                    local definition = ____command_0.definition
-                    return {
-                        label = name,
-                        details = definition,
-                        text = name,
-                        value = name,
-                        data = command
-                    }
+        setup(nil)
+        return entries
+    end,
+    onAccept = function(entry)
+        local command = entry.data
+        if command.nargs == "0" then
+            vim.cmd(command.name)
+        else
+            local ____self_1 = Timer:wait(0)
+            ____self_1["then"](
+                ____self_1,
+                function()
+                    openPickerByID("commands-run", command.name)
                 end
             )
-            table.sort(
-                entries,
-                function(a, b) return a.text < b.text end
-            )
         end
-        return entries
+    end
+}
+local run = {
+    id = "commands-run",
+    prefix = function(args) return tostring(args[1]) .. " " end,
+    prefixColor = "keyword",
+    hasIcon = false,
+    singleLine = true,
+    entries = function(args)
+        setup(nil)
+        local name = unpack(args)
+        local command = __TS__ArrayFind(
+            commands,
+            function(____, c) return c.name == name end
+        )
+        if not command then
+            return {}
+        end
+        local complete = command.complete
+        local complete_arg = command.complete_arg
+        repeat
+            local ____switch15 = complete
+            local ____cond15 = ____switch15 == "custom"
+            if ____cond15 then
+                do
+                    local fn = vim.fn[complete_arg]
+                    local values = __TS__StringSplit(
+                        fn("", "", ""),
+                        "\n"
+                    )
+                    return __TS__ArrayMap(
+                        values,
+                        function(____, text) return {text = text, label = text, value = text} end
+                    )
+                end
+            end
+            ____cond15 = ____cond15 or ____switch15 == "customlist"
+            if ____cond15 then
+                do
+                    local fn = vim.fn[complete_arg]
+                    local values = fn("", "", "")
+                    return __TS__ArrayMap(
+                        values,
+                        function(____, text) return {text = text, label = text, value = text} end
+                    )
+                end
+            end
+            do
+                return {}
+            end
+        until true
     end,
     onAccept = function(entry)
         local command = entry.data
@@ -3529,86 +3694,31 @@ ____exports.default = {
         end
     end
 }
+____exports.default = {list = list, run = run}
 return ____exports
  end,
 ["index"] = function(...) 
-local ____lualib = require("lualib_bundle")
-local __TS__New = ____lualib.__TS__New
-local __TS__ObjectKeys = ____lualib.__TS__ObjectKeys
+--[[ Generated with https://github.com/TypeScriptToLua/TypeScriptToLua ]]
 local ____exports = {}
-local ____kui = require("kui")
-local Timer = ____kui.Timer
-local ____Selector = require("components.Selector")
-local Selector = ____Selector.Selector
-local ____pick = require("pick")
-local getEntries = ____pick.getEntries
-local onChangeFZY = ____pick.onChangeFZY
+local api = require("api")
 local ____files = require("pickers.files")
 local files = ____files.default
 local ____ctags = require("pickers.ctags")
 local ctags = ____ctags.default
 local ____commands = require("pickers.commands")
 local commands = ____commands.default
-____exports.selector = nil
-____exports.timer = nil
-____exports.pickers = {}
-function ____exports.open(opts, ...)
-    local args = {...}
-    local ____opt_0 = ____exports.timer
-    if ____opt_0 ~= nil then
-        ____exports.timer:stop()
-    end
-    local ____opt_2 = ____exports.selector
-    if ____opt_2 ~= nil then
-        ____exports.selector:close()
-    end
-    ____exports.selector = __TS__New(Selector, opts)
-    ____exports.selector:setInitialEntries(getEntries(opts, args))
-    ____exports.selector:onChange(onChangeFZY)
-    ____exports.selector:onDidClose(function()
-        ____exports.selector = nil
-    end)
-    local ____self_6 = Timer:wait(100)
-    ____self_6["then"](
-        ____self_6,
-        function()
-            local ____opt_4 = ____exports.selector
-            if ____opt_4 ~= nil then
-                ____exports.selector:render()
-            end
+do
+    local ____export = require("api")
+    for ____exportKey, ____exportValue in pairs(____export) do
+        if ____exportKey ~= "default" then
+            ____exports[____exportKey] = ____exportValue
         end
-    )
-end
-function ____exports.listPickers(self)
-    return __TS__ObjectKeys(____exports.pickers)
-end
-function ____exports.close(self)
-    local ____opt_7 = ____exports.selector
-    if ____opt_7 ~= nil then
-        ____exports.selector:close()
-    end
-    ____exports.selector = nil
-end
-function ____exports.register(opts)
-    ____exports.pickers[opts.id] = opts
-end
-function ____exports.openPickerByID(id, ...)
-    local args = {...}
-    if ____exports.pickers[id] ~= nil then
-        ____exports.open(____exports.pickers[id], args)
-    else
-        print("Could not find picker " .. id)
     end
 end
-____exports.register(files)
-____exports.register(ctags.currentFile)
-____exports.register(commands)
-function ____exports.openFilePicker(directory)
-    if directory == nil then
-        directory = "."
-    end
-    ____exports.openPickerByID("files", directory)
-end
+api.register(files)
+api.register(ctags.currentFile)
+api.register(commands.list)
+api.register(commands.run)
 return ____exports
  end,
 }

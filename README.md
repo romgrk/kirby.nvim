@@ -44,13 +44,19 @@ Select files in the (current) directory. Uses `fd` if available, otherwise `git 
 
 Select ctags for the current file. Requires `universal-ctags`.
 
-![ctags](./assets/picker-ctags.png)
+![demo](./assets/picker-ctags.png)
 
-#### `Kirby commands`
+#### `Kirby commands-list`
 
 Select a vim command.
 
-![ctags](./assets/picker-commands.png)
+![demo](./assets/picker-commands.png)
+
+#### `Kirby commands-run <command>`
+
+Run a vim command.
+
+![demo](./assets/picker-commands-run.png)
 
 ## Adding pickers
 
