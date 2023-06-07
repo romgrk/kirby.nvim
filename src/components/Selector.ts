@@ -170,10 +170,10 @@ export class Selector extends EventEmitter<Events> {
     this.on('didClose', fn as any)
   }
 
-  onAccept(callback: string | ((entry: Entry) => void)) {
+  onAccept(callback: string | ((this: void, entry: Entry) => void)) {
     const fn =
       typeof callback === 'function' ?
-        callback :
+        (entry: Entry) => { callback(entry) } :
         (entry: Entry) => { vim.cmd(`${callback} ${entry.text}`) }
 
     this.on('accept', fn)
