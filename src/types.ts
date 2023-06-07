@@ -1,6 +1,7 @@
 import type { Selector } from './components/Selector'
 
 export type Entry = {
+  data?: any,
   icon?: string,
   iconColor?: string,
   label: string,

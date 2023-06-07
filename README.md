@@ -25,8 +25,17 @@ It also has the following hard dependencies that you need to ensure.
 This plugin maps `<C-p>` to opening the file picker, unless that key is already mapped.
 You can create your own mapping by using the command `:Kirby file`.
 
-Use the `:Kirby [picker-id]` command to open a picker. The `file` picker is the only picker
-registered by default.
+Use the `:Kirby [picker-id]` command to open a picker.
+
+### Default pickers
+
+#### `Kirby file [directory]`
+
+Select files in the (current) directory. Uses `fd` if available, otherwise `git ls-files`.
+
+#### `Kirby ctags-current-file`
+
+Select ctags for the current file. Requires `universal-ctags`.
 
 ## Adding pickers
 

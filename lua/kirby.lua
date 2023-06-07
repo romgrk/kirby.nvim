@@ -2800,7 +2800,7 @@ function Selector.prototype.____constructor(self, opts)
     container.x = 0
     container.y = input.y + input.height + 0.5 * ch
     self.labelStyle = __TS__New(TextStyle, {fill = foregroundColor})
-    self.detailsStyle = __TS__New(TextStyle, {fill = foregroundColor - 4210752, fontSize = TextStyle.defaultStyle.fontSize * 0.9})
+    self.detailsStyle = __TS__New(TextStyle, {fill = foregroundColor - 4210752, fontSize = opts.singleLine and settings.DEFAULT_FONT_SIZE or settings.DEFAULT_FONT_SIZE * 0.9})
     self.didInit = false
     self.initialEntries = {}
     self.entries = {}
@@ -3405,6 +3405,72 @@ ____exports.default = {
 }
 return ____exports
  end,
+["pickers.ctags"] = function(...) 
+local ____lualib = require("lualib_bundle")
+local __TS__StringTrim = ____lualib.__TS__StringTrim
+local __TS__StringSplit = ____lualib.__TS__StringSplit
+local __TS__ParseInt = ____lualib.__TS__ParseInt
+local __TS__ArraySlice = ____lualib.__TS__ArraySlice
+local __TS__StringTrimStart = ____lualib.__TS__StringTrimStart
+local __TS__ArrayMap = ____lualib.__TS__ArrayMap
+local __TS__ArraySort = ____lualib.__TS__ArraySort
+local ____exports = {}
+local currentFile = {
+    id = "ctags-current-file",
+    prefix = "Jump to ",
+    prefixColor = "comment",
+    hasIcon = false,
+    singleLine = true,
+    entries = function()
+        local file = vim.fn.bufname(0)
+        if not file or file == "" then
+            return {}
+        end
+        local lines = __TS__StringSplit(
+            __TS__StringTrim(vim.fn.system("ctags --excmd=combine -f- " .. file)),
+            "\n"
+        )
+        local entries = __TS__ArrayMap(
+            lines,
+            function(____, line)
+                local symbol, _file, address, _type = unpack(__TS__StringSplit(line, "\t"))
+                local addressParts = __TS__StringSplit(address, ";")
+                local lineNumber = __TS__ParseInt(addressParts[1])
+                local rest = table.concat(
+                    __TS__ArraySlice(addressParts, 1),
+                    ";"
+                )
+                local pattern = string.sub(
+                    string.sub(rest, 3),
+                    1,
+                    -5
+                )
+                local code = __TS__StringTrim(pattern)
+                local columnNumber = #pattern - #__TS__StringTrimStart(pattern)
+                return {
+                    label = symbol,
+                    details = (tostring(lineNumber) .. ": ") .. code,
+                    text = symbol,
+                    value = symbol,
+                    data = {lineNumber = lineNumber, columnNumber = columnNumber}
+                }
+            end
+        )
+        __TS__ArraySort(
+            entries,
+            function(____, a, b)
+                return a.data.lineNumber - b.data.lineNumber
+            end
+        )
+        return entries
+    end,
+    onAccept = function(____, entry)
+        vim.api.nvim_win_set_cursor(0, {entry.data.lineNumber, entry.data.columnNumber})
+    end
+}
+____exports.default = {currentFile = currentFile}
+return ____exports
+ end,
 ["index"] = function(...) 
 local ____lualib = require("lualib_bundle")
 local __TS__New = ____lualib.__TS__New
@@ -3417,6 +3483,8 @@ local getEntries = ____pick.getEntries
 local onChangeFZY = ____pick.onChangeFZY
 local ____file = require("pickers.file")
 local file = ____file.default
+local ____ctags = require("pickers.ctags")
+local ctags = ____ctags.default
 ____exports.selector = nil
 ____exports.pickers = {}
 function ____exports.open(opts, ...)
@@ -3454,6 +3522,7 @@ function ____exports.openPickerByID(id, ...)
     end
 end
 ____exports.register(file)
+____exports.register(ctags.currentFile)
 function ____exports.openFilePicker(directory)
     if directory == nil then
         directory = "."

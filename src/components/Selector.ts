@@ -136,7 +136,6 @@ export class Selector extends EventEmitter<Events> {
       stage.addChild(prefix)
     }
 
-
     const containerY = input.y + input.height + 0.5 * ch
     const containerHeight = height - containerY - paddingY
     const container = this.container = stage.addChild(new Graphics())
@@ -146,7 +145,7 @@ export class Selector extends EventEmitter<Events> {
     this.labelStyle = new TextStyle({ fill: foregroundColor })
     this.detailsStyle = new TextStyle({
       fill: foregroundColor - 0x404040,
-      fontSize: TextStyle.defaultStyle.fontSize as number * 0.9,
+      fontSize: opts.singleLine ? settings.DEFAULT_FONT_SIZE : settings.DEFAULT_FONT_SIZE * 0.9,
     })
 
     this.didInit = false

@@ -2,6 +2,7 @@ import { Picker } from './types'
 import { Selector } from './components/Selector'
 import { getEntries, onChangeFZY } from './pick'
 import file from './pickers/file'
+import ctags from './pickers/ctags'
 
 export let selector: Selector | null = null
 export const pickers = {} as Record<string, Picker>
@@ -38,6 +39,7 @@ export function openPickerByID(this: void, id: string, ...args: any[]) {
 }
 
 register(file)
+register(ctags.currentFile)
 
 export function openFilePicker(this: void, directory: string = '.') {
   openPickerByID('file', directory)
