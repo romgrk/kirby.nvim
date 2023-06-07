@@ -25,6 +25,22 @@ dependencies that you need to ensure.
 This plugin maps `<C-p>` to opening the file picker, unless that key is already mapped.
 You can create your own mapping by using the command `:KirbyFilePicker`.
 
+## Adding pickers
+
+```lua
+
+local kirby = require('kirby')
+
+kirby.register('git-branch', {
+  name = 'Git checkout',
+  values = function() return vim.fn['fugitive#CompleteObject']('', ' ', '') end,
+  onAccept = 'Git checkout',
+})
+```
+
+See [types.ts](./src/types.ts) for configuration options.
+
+
 ## License
 
 JSON license (MIT license + non-evilness clause)
