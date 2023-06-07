@@ -3642,17 +3642,37 @@ return ____exports
 local ____lualib = require("lualib_bundle")
 local __TS__StringTrim = ____lualib.__TS__StringTrim
 local __TS__StringSplit = ____lualib.__TS__StringSplit
-local __TS__ParseInt = ____lualib.__TS__ParseInt
-local __TS__ArraySlice = ____lualib.__TS__ArraySlice
 local __TS__StringTrimStart = ____lualib.__TS__StringTrimStart
+local __TS__ArraySlice = ____lualib.__TS__ArraySlice
+local __TS__ArrayReduce = ____lualib.__TS__ArrayReduce
+local __TS__ParseInt = ____lualib.__TS__ParseInt
 local __TS__ArrayMap = ____lualib.__TS__ArrayMap
 local __TS__ArraySort = ____lualib.__TS__ArraySort
 local ____exports = {}
+local ____kui = require("kui")
+local editor = ____kui.editor
+local HIGHLIGHT_BY_TYPE = {
+    ["function"] = "@function",
+    method = "@function",
+    variable = "identifier",
+    property = "@property",
+    alias = "typedef",
+    class = "structure"
+}
+local ICON_BY_TYPE = {
+    ["function"] = "󰊕",
+    method = "󰊕",
+    class = "",
+    interface = "",
+    enum = "",
+    alias = "",
+    default = ""
+}
 local currentFile = {
     id = "ctags-current-file",
     prefix = "Jump to ",
     prefixColor = "comment",
-    hasIcon = false,
+    hasIcon = true,
     singleLine = true,
     detailsAlign = "right",
     entries = function()
@@ -3661,33 +3681,67 @@ local currentFile = {
             return {}
         end
         local lines = __TS__StringSplit(
-            __TS__StringTrim(vim.fn.system("ctags --excmd=combine -f- " .. file)),
+            __TS__StringTrim(vim.fn.system("ctags '--fields=*' -f- " .. file)),
             "\n"
         )
+        local colors = {}
+        local function getColor(self, name)
+            if name == nil then
+                name = "comment"
+            end
+            if colors[name] == nil then
+                colors[name] = editor:getHighlight(name).foreground or 16777215
+            end
+            return colors[name]
+        end
+        local function getIcon(self, ____type)
+            return ICON_BY_TYPE[____type] or ICON_BY_TYPE.default
+        end
         local entries = __TS__ArrayMap(
             lines,
             function(____, line)
-                local symbol, _file, address, _type = unpack(__TS__StringSplit(line, "\t"))
-                local addressParts = __TS__StringSplit(address, ";")
-                local lineNumber = __TS__ParseInt(addressParts[1])
-                local rest = table.concat(
-                    __TS__ArraySlice(addressParts, 1),
-                    ";"
-                )
+                local parts = __TS__StringSplit(line, "\t")
+                local name, _file, address = unpack(parts)
                 local pattern = string.sub(
-                    string.sub(rest, 3),
+                    string.sub(address, 3),
                     1,
                     -5
                 )
                 local code = __TS__StringTrim(pattern)
                 local columnNumber = #pattern - #__TS__StringTrimStart(pattern)
-                local text = (tostring(lineNumber) .. ": ") .. symbol
+                local fields = __TS__ArrayReduce(
+                    __TS__ArraySlice(parts, 3),
+                    function(____, acc, cur)
+                        local key = unpack(__TS__StringSplit(cur, ":"))
+                        acc[key] = table.concat(
+                            __TS__ArraySlice(
+                                __TS__StringSplit(cur, ":"),
+                                1
+                            ),
+                            ":"
+                        )
+                        return acc
+                    end,
+                    {}
+                )
+                local scope = nil
+                if fields.scope then
+                    scope = __TS__StringTrim(__TS__StringSplit(fields.scope, ":")[2])
+                end
+                local symbol = scope and (scope .. " ") .. name or name
+                local text = symbol
+                local details = (fields.line .. ": ") .. code
                 return {
+                    icon = getIcon(nil, fields.kind),
+                    iconColor = getColor(nil, HIGHLIGHT_BY_TYPE[fields.kind]),
                     label = text,
-                    details = code,
+                    details = details,
                     text = text,
                     value = text,
-                    data = {lineNumber = lineNumber, columnNumber = columnNumber}
+                    data = {
+                        lineNumber = __TS__ParseInt(fields.line),
+                        columnNumber = columnNumber
+                    }
                 }
             end
         )
@@ -3701,6 +3755,7 @@ local currentFile = {
     end,
     onAccept = function(entry)
         vim.api.nvim_win_set_cursor(0, {entry.data.lineNumber, entry.data.columnNumber})
+        vim.cmd("normal! zz")
     end
 }
 ____exports.default = {currentFile = currentFile}
