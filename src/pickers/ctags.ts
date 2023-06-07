@@ -1,13 +1,14 @@
-import type { Entry } from '../types'
+import type { Entry, Picker } from '../types'
 
-const currentFile = {
+const currentFile: Picker = {
   id: 'ctags-current-file',
   prefix: 'Jump to ',
   prefixColor: 'comment',
   hasIcon: false,
   singleLine: true,
+  detailsAlign: 'right',
   entries: function(this: void) {
-    const file = vim.fn.bufname(0)
+    const file = vim.fn.bufname()
     if (!file || file === '') {
       return []
     }
@@ -23,11 +24,12 @@ const currentFile = {
       const code = pattern.trim()
       const columnNumber = pattern.length - pattern.trimStart().length
 
+      const text = `${lineNumber}: ${symbol}`
       return {
-        label: symbol,
-        details: `${lineNumber}: ${code}`,
-        text: symbol,
-        value: symbol,
+        label: text,
+        details: code,
+        text: text,
+        value: text,
         data: {
           lineNumber,
           columnNumber,

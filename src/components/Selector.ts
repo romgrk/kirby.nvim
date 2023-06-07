@@ -243,7 +243,8 @@ export class Selector extends EventEmitter<Events> {
       return
     }
 
-    const { hasIcon, singleLine } = this.opts
+    const { hasIcon, singleLine, detailsAlign } = this.opts
+    const alignDetailsRight = detailsAlign === 'right'
     const yForIndex = (i: number) => i * this.entryHeight
 
     if (!isEmpty) {
@@ -323,14 +324,20 @@ export class Selector extends EventEmitter<Events> {
       if (entry.details !== undefined) {
         const details = entry.details
         const textEntry = line.addChild(new Text(details, this.detailsStyle))
+        if (singleLine) {
+          textEntry.y = 0.5 * ch
+          if (alignDetailsRight) {
+            const endX = this.width - this.paddingX
+            const x = endX - textEntry.width
+            textEntry.x = Math.max(currentX, x)
+          } else {
+            textEntry.x = currentX
+          }
+        }
         if (!singleLine) {
           textEntry.y = 1.5 * ch
           textEntry.x = this.textPaddingX
-        } else {
-          textEntry.y = 0.5 * ch
-          textEntry.x = currentX
         }
-        currentX += textEntry.width
       }
 
       {

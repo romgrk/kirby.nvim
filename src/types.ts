@@ -52,6 +52,8 @@ export type Picker =
      * Default: `true`
      */
     singleLine?: boolean,
+    /** Alignment of details text */
+    detailsAlign?: 'left' | 'right',
     /** The desired width, in terminal columns */
     width?: number,
     /**

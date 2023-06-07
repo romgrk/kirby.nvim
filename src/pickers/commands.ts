@@ -1,4 +1,4 @@
-import type { Entry } from '../types'
+import type { Entry, Picker } from '../types'
 
 type Command = {
   name: string,
@@ -27,6 +27,7 @@ export default {
   prefixColor: 'keyword',
   hasIcon: false,
   singleLine: true,
+  detailsAlign: 'right',
   entries: function(this: void, args: any[]) {
     if (!commands || !entries) {
       commands = Object.values(vim.api.nvim_get_commands({})) as Command[]
@@ -53,4 +54,4 @@ export default {
       vim.fn.feedkeys(':' + command.name + ' ', 'n')
     }
   },
-}
+} as Picker

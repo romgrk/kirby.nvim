@@ -2879,6 +2879,8 @@ function Selector.prototype.setEntries(self, entries)
     local ____self_opts_9 = self.opts
     local hasIcon = ____self_opts_9.hasIcon
     local singleLine = ____self_opts_9.singleLine
+    local detailsAlign = ____self_opts_9.detailsAlign
+    local alignDetailsRight = detailsAlign == "right"
     local function yForIndex(____, i)
         return i * self.entryHeight
     end
@@ -2925,14 +2927,20 @@ function Selector.prototype.setEntries(self, entries)
         if entry.details ~= nil then
             local details = entry.details
             local textEntry = line:addChild(__TS__New(Text, details, self.detailsStyle))
+            if singleLine then
+                textEntry.y = 0.5 * ch
+                if alignDetailsRight then
+                    local endX = self.width - self.paddingX
+                    local x = endX - textEntry.width
+                    textEntry.x = math.max(currentX, x)
+                else
+                    textEntry.x = currentX
+                end
+            end
             if not singleLine then
                 textEntry.y = 1.5 * ch
                 textEntry.x = self.textPaddingX
-            else
-                textEntry.y = 0.5 * ch
-                textEntry.x = currentX
             end
-            currentX = currentX + textEntry.width
         end
         do
             local separator = line:addChild(__TS__New(Graphics))
@@ -3419,8 +3427,9 @@ local currentFile = {
     prefixColor = "comment",
     hasIcon = false,
     singleLine = true,
+    detailsAlign = "right",
     entries = function()
-        local file = vim.fn.bufname(0)
+        local file = vim.fn.bufname()
         if not file or file == "" then
             return {}
         end
@@ -3445,11 +3454,12 @@ local currentFile = {
                 )
                 local code = __TS__StringTrim(pattern)
                 local columnNumber = #pattern - #__TS__StringTrimStart(pattern)
+                local text = (tostring(lineNumber) .. ": ") .. symbol
                 return {
-                    label = symbol,
-                    details = (tostring(lineNumber) .. ": ") .. code,
-                    text = symbol,
-                    value = symbol,
+                    label = text,
+                    details = code,
+                    text = text,
+                    value = text,
                     data = {lineNumber = lineNumber, columnNumber = columnNumber}
                 }
             end
@@ -3462,7 +3472,7 @@ local currentFile = {
         )
         return entries
     end,
-    onAccept = function(____, entry)
+    onAccept = function(entry)
         vim.api.nvim_win_set_cursor(0, {entry.data.lineNumber, entry.data.columnNumber})
     end
 }
@@ -3482,6 +3492,7 @@ ____exports.default = {
     prefixColor = "keyword",
     hasIcon = false,
     singleLine = true,
+    detailsAlign = "right",
     entries = function(args)
         if not commands or not entries then
             commands = __TS__ObjectValues(vim.api.nvim_get_commands({}))
@@ -3507,7 +3518,7 @@ ____exports.default = {
         end
         return entries
     end,
-    onAccept = function(____, entry)
+    onAccept = function(entry)
         local command = entry.data
         if command.nargs == "0" then
             vim.cmd(command.name)
