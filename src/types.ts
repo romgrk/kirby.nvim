@@ -13,8 +13,8 @@ export type Entry = {
   detailsOffset?: number,
 }
 
-export type AcceptFn = (entry: Entry) => void
-export type ChangeFn = (selector: Selector, input: string) => void
+export type AcceptFn = (this: void, entry: Entry) => void
+export type ChangeFn = (this: void, selector: Selector, input: string) => void
 
 export type Picker =
   (
@@ -32,6 +32,8 @@ export type Picker =
       }
   ) &
   {
+    /** The picker id */
+    id: string,
     /** The name, the small label above the input */
     name?: string,
     /** The prefix, on the left of the input */

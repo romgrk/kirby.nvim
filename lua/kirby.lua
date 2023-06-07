@@ -2568,6 +2568,454 @@ function ____exports.getIcon(self, filename, extname)
 end
 return ____exports
  end,
+["pick"] = function(...) 
+local ____lualib = require("lualib_bundle")
+local __TS__ArrayMap = ____lualib.__TS__ArrayMap
+local __TS__ArrayForEach = ____lualib.__TS__ArrayForEach
+local __TS__ArrayFilter = ____lualib.__TS__ArrayFilter
+local __TS__ArraySort = ____lualib.__TS__ArraySort
+local ____exports = {}
+local fzy = require("fzy-lua-native")
+function ____exports.getEntries(opts, args)
+    local entries
+    if opts.values ~= nil then
+        local valuesOpt = opts.values
+        local values = type(valuesOpt) == "function" and valuesOpt(unpack(args)) or valuesOpt
+        entries = __TS__ArrayMap(
+            values,
+            function(____, v) return {label = v, text = v, value = v} end
+        )
+    else
+        local entriesOpt = opts.entries
+        entries = type(entriesOpt) == "function" and entriesOpt(unpack(args)) or entriesOpt
+    end
+    return entries
+end
+function ____exports.onChangeFZY(selector, input)
+    local sensitive = input ~= string.lower(input)
+    local filtered = __TS__ArrayFilter(
+        selector.initialEntries,
+        function(____, e, i)
+            local hasMatch = fzy.has_match(input, e.text, sensitive)
+            if hasMatch then
+                e.score = fzy.score(input, e.text, sensitive)
+                e.positions = fzy.positions(input, e.text, sensitive)
+                __TS__ArrayForEach(
+                    e.positions,
+                    function(____, _, i)
+                        local ____e_positions_0, ____temp_1 = e.positions, i + 1
+                        ____e_positions_0[____temp_1] = ____e_positions_0[____temp_1] - 1
+                    end
+                )
+            end
+            return hasMatch
+        end
+    )
+    __TS__ArraySort(
+        filtered,
+        function(____, a, b) return (b.score or 0) - (a.score or 0) end
+    )
+    selector:setEntries(filtered)
+end
+return ____exports
+ end,
+["components.Selector"] = function(...) 
+local ____lualib = require("lualib_bundle")
+local __TS__Class = ____lualib.__TS__Class
+local __TS__ClassExtends = ____lualib.__TS__ClassExtends
+local __TS__ObjectAssign = ____lualib.__TS__ObjectAssign
+local __TS__New = ____lualib.__TS__New
+local __TS__ParseInt = ____lualib.__TS__ParseInt
+local __TS__ArrayMap = ____lualib.__TS__ArrayMap
+local ____exports = {}
+local getWindowDimensions, clamp
+local ____kui = require("kui")
+local settings = ____kui.settings
+local editor = ____kui.editor
+local EventEmitter = ____kui.EventEmitter
+local Renderer = ____kui.Renderer
+local Container = ____kui.Container
+local Graphics = ____kui.Graphics
+local Text = ____kui.Text
+local TextStyle = ____kui.TextStyle
+local Input = ____kui.Input
+local ____constants = require("constants")
+local HIGHLIGHT_COLORS = ____constants.HIGHLIGHT_COLORS
+local ____pick = require("pick")
+local onChangeFZY = ____pick.onChangeFZY
+function getWindowDimensions(self)
+    local row, col = unpack(vim.fn.win_screenpos(0))
+    local width = vim.fn.winwidth(0)
+    local height = vim.fn.winheight(0)
+    return {row = row, col = col, width = width, height = height}
+end
+function clamp(self, min, max, value)
+    return math.max(
+        min,
+        math.min(max, value)
+    )
+end
+local cellPixels = settings.DIMENSIONS.cell_pixels
+local screenCells = settings.DIMENSIONS.screen_cells
+local setKeymap = vim.api.nvim_buf_set_keymap
+local COLOR = {FOCUS = 1919121}
+local DESIRED_CELL_WIDTH = 100
+____exports.Selector = __TS__Class()
+local Selector = ____exports.Selector
+Selector.name = "Selector"
+__TS__ClassExtends(Selector, EventEmitter)
+function Selector.prototype.____constructor(self, opts)
+    EventEmitter.prototype.____constructor(self)
+    self.onMountInput = function(____, bufferId)
+        setKeymap(
+            bufferId,
+            "i",
+            "<CR>",
+            "<Esc>:lua require(\"kirby\").selector:accept()<CR>",
+            {noremap = true, silent = true}
+        )
+        setKeymap(
+            bufferId,
+            "i",
+            "<Esc>",
+            "<Esc>:lua require(\"kirby\").selector:close()<CR>",
+            {noremap = true, silent = true}
+        )
+        setKeymap(
+            bufferId,
+            "i",
+            "<A-j>",
+            "<C-o>:lua require(\"kirby\").selector:select(1)<CR>",
+            {noremap = true, silent = true}
+        )
+        setKeymap(
+            bufferId,
+            "i",
+            "<A-k>",
+            "<C-o>:lua require(\"kirby\").selector:select(-1)<CR>",
+            {noremap = true, silent = true}
+        )
+        vim.cmd("startinsert")
+    end
+    self.opts = __TS__ObjectAssign({}, opts)
+    self.opts.prefix = opts.prefix or ""
+    local ____self_opts_1 = self.opts
+    local ____temp_0
+    if opts.singleLine == nil then
+        ____temp_0 = true
+    else
+        ____temp_0 = opts.singleLine
+    end
+    ____self_opts_1.singleLine = ____temp_0
+    opts = self.opts
+    local cw = cellPixels.width
+    local ch = cellPixels.height
+    local window = getWindowDimensions(nil)
+    local marginHorizontal = 5
+    local row = window.row + 2
+    local col = window.col + marginHorizontal
+    local availableWidth = window.width
+    local desiredCellWidth = opts.width or DESIRED_CELL_WIDTH
+    local ____temp_2 = clamp(nil, 10, availableWidth - marginHorizontal * 2, desiredCellWidth) * cw
+    self.width = ____temp_2
+    local width = ____temp_2
+    local ____temp_3 = 20 * ch
+    self.height = ____temp_3
+    local height = ____temp_3
+    local ____temp_4 = 2 * cw
+    self.paddingX = ____temp_4
+    local paddingX = ____temp_4
+    local ____temp_5 = 1 * ch
+    self.paddingY = ____temp_5
+    local paddingY = ____temp_5
+    self.iconWidth = opts.hasIcon and (opts.singleLine and 4 * cw or 3 * cw) or 0
+    self.textPaddingX = self.paddingX + self.iconWidth
+    local ____TS__New_result_6 = __TS__New(Renderer, {col = col, row = row, width = width, height = height})
+    self.renderer = ____TS__New_result_6
+    local renderer = ____TS__New_result_6
+    local ____TS__New_result_7 = __TS__New(Container)
+    self.stage = ____TS__New_result_7
+    local stage = ____TS__New_result_7
+    local hlFloat = editor:getHighlight("NormalFloat")
+    local backgroundColor = hlFloat.background or 4408131
+    local foregroundColor = hlFloat.foreground or 16777215
+    local borderColor = backgroundColor + 3158064
+    local titleTextColor = 13421772
+    self.separatorColor = backgroundColor + 3158064
+    local background = stage:addChild(__TS__New(Graphics))
+    background.x = 0
+    background.y = 0
+    background:beginFill(backgroundColor)
+    background:drawRoundedRect(
+        0,
+        0,
+        width,
+        height,
+        20
+    )
+    background:endFill()
+    background:lineStyle(2, borderColor, 1)
+    background:drawRoundedRect(
+        0,
+        0,
+        width,
+        height,
+        20
+    )
+    local prefix = opts.prefix
+    local inputX = paddingX + #prefix * cw
+    local ____temp_8 = stage:addChild(__TS__New(Input, {width = width - 4 * cw - #prefix * cw, color = foregroundColor}))
+    self.input = ____temp_8
+    local input = ____temp_8
+    input.x = inputX
+    input.y = 1 * ch
+    input:onMount(self.onMountInput)
+    self.focus = nil
+    if opts.name ~= nil then
+        local name = __TS__New(
+            Text,
+            opts.name,
+            __TS__New(TextStyle, {fill = titleTextColor, fontSize = settings.DEFAULT_FONT_SIZE * 0.8})
+        )
+        name.x = inputX
+        name.y = 0
+        stage:addChild(name)
+    end
+    if opts.prefix ~= nil then
+        local color = opts.prefixColor == nil and titleTextColor or (type(opts.prefixColor) == "number" and opts.prefixColor or (editor:getHighlight(opts.prefixColor).foreground or 16777215))
+        local prefix = __TS__New(
+            Text,
+            opts.prefix,
+            __TS__New(TextStyle, {fill = color})
+        )
+        prefix.x = paddingX
+        prefix.y = 1 * ch
+        stage:addChild(prefix)
+    end
+    local containerY = input.y + input.height + 0.5 * ch
+    local containerHeight = height - containerY - paddingY
+    local ____temp_9 = stage:addChild(__TS__New(Graphics))
+    self.container = ____temp_9
+    local container = ____temp_9
+    container.x = 0
+    container.y = input.y + input.height + 0.5 * ch
+    self.labelStyle = __TS__New(TextStyle, {fill = foregroundColor})
+    self.detailsStyle = __TS__New(TextStyle, {fill = foregroundColor - 4210752, fontSize = TextStyle.defaultStyle.fontSize * 0.9})
+    self.didInit = false
+    self.initialEntries = {}
+    self.entries = {}
+    self.maxEntries = math.floor(containerHeight / ch)
+    self.activeIndex = -1
+    self.entryHeight = self.opts.singleLine and 2 * ch or 3 * ch
+    renderer:render(stage)
+    self:onAccept(opts.onAccept)
+    self:onChange(opts.onChange or onChangeFZY)
+end
+function Selector.prototype.onChange(self, fn)
+    local ____self = self
+    self.input:onChange(function(self, input)
+        fn(____self, input)
+    end)
+end
+function Selector.prototype.onDidClose(self, fn)
+    self:on("didClose", fn)
+end
+function Selector.prototype.onAccept(self, callback)
+    local fn = type(callback) == "function" and callback or (function(____, entry)
+        vim.cmd((callback .. " ") .. entry.text)
+    end)
+    self:on("accept", fn)
+end
+function Selector.prototype.accept(self)
+    self:close()
+    local entry = self.entries[self.activeIndex + 1]
+    if entry ~= nil then
+        self:emit("accept", entry)
+    end
+end
+function Selector.prototype.select(self, direction)
+    if self.activeIndex == -1 or not self.focus then
+        return
+    end
+    self.activeIndex = self.activeIndex + direction
+    if self.activeIndex < 0 then
+        self.activeIndex = self.activeIndex + #self.entries
+    end
+    if self.activeIndex >= #self.entries then
+        self.activeIndex = self.activeIndex - #self.entries
+    end
+    self.focus.y = self.activeIndex * self.entryHeight
+    self:render()
+end
+function Selector.prototype.setInitialEntries(self, entries)
+    self.didInit = true
+    self.initialEntries = entries
+    self:setEntries(self.initialEntries)
+end
+function Selector.prototype.drawMessage(self, message)
+    local style = __TS__New(
+        TextStyle,
+        {
+            fill = editor:getHighlight("comment").foreground or 16777215,
+            fontSize = settings.DEFAULT_FONT_SIZE
+        }
+    )
+    local textEntry = self.container:addChild(__TS__New(Text, message, style))
+    textEntry.y = 0.5 * cellPixels.height
+    textEntry.x = self.textPaddingX
+end
+function Selector.prototype.setEntries(self, entries)
+    local isEmpty = #entries == 0
+    self.entries = entries
+    self.activeIndex = not isEmpty and 0 or -1
+    local cw = cellPixels.width
+    local ch = cellPixels.height
+    local container = self.container
+    while #container.children > 0 do
+        container:removeChildAt(0)
+    end
+    if isEmpty then
+        self:drawMessage(self.didInit and "No results" or "Loading entries...")
+        self:render()
+        return
+    end
+    local ____self_opts_10 = self.opts
+    local hasIcon = ____self_opts_10.hasIcon
+    local singleLine = ____self_opts_10.singleLine
+    local function yForIndex(____, i)
+        return i * self.entryHeight
+    end
+    if not isEmpty then
+        local ____temp_11 = container:addChild(__TS__New(Graphics))
+        self.focus = ____temp_11
+        local focus = ____temp_11
+        focus.y = yForIndex(nil, self.activeIndex)
+        local bg = focus:addChild(__TS__New(Graphics))
+        bg:beginFill(COLOR.FOCUS)
+        bg:drawRect(0 - 5, 0, self.width + 10, self.entryHeight)
+    end
+    local i = 0
+    for ____, entry in ipairs(entries) do
+        local line = container:addChild(__TS__New(Container))
+        line.y = yForIndex(nil, i)
+        local currentX = self.paddingX
+        if hasIcon then
+            if entry.icon then
+                local style = self.labelStyle:clone()
+                if entry.iconColor then
+                    style.fill = __TS__ParseInt(
+                        string.sub(entry.iconColor, 2),
+                        16
+                    )
+                end
+                if not singleLine then
+                    style.fontSize = settings.DEFAULT_FONT_SIZE * 1.2
+                end
+                local textIcon = line:addChild(__TS__New(Text, entry.icon, style))
+                textIcon.x = singleLine and currentX or 1.5 * cw
+                textIcon.y = singleLine and 0 or 0.8 * ch
+            end
+            currentX = currentX + self.iconWidth
+        end
+        do
+            local label = entry.label
+            local textEntry = line:addChild(__TS__New(Text, label, self.labelStyle))
+            textEntry.y = singleLine and 0.5 * ch or 0.5 * ch
+            textEntry.x = currentX
+            currentX = currentX + textEntry.width
+        end
+        currentX = currentX + 1 * cw
+        if entry.details ~= nil then
+            local details = entry.details
+            local textEntry = line:addChild(__TS__New(Text, details, self.detailsStyle))
+            if not singleLine then
+                textEntry.y = 1.5 * ch
+                textEntry.x = self.textPaddingX
+            else
+                textEntry.y = 0.5 * ch
+                textEntry.x = currentX
+            end
+            currentX = currentX + textEntry.width
+        end
+        do
+            local separator = line:addChild(__TS__New(Graphics))
+            separator.x = 0
+            separator.y = 0
+            separator:lineStyle(2, self.separatorColor, 0.5)
+            separator:moveTo(0, 0)
+            separator:lineTo(self.width, 0)
+        end
+        if i + 1 == self.maxEntries or entry == entries[#entries] then
+            local separator = line:addChild(__TS__New(Graphics))
+            separator.x = 0
+            separator.y = self.entryHeight
+            separator:lineStyle(2, self.separatorColor, 0.5)
+            separator:moveTo(0, 0)
+            separator:lineTo(self.width, 0)
+        end
+        i = i + 1
+        if i >= self.maxEntries then
+            break
+        end
+    end
+    self:render()
+end
+function Selector.prototype.render(self)
+    self.renderer:render(self.stage)
+end
+function Selector.prototype.close(self)
+    local ____opt_12 = self.input
+    if ____opt_12 ~= nil then
+        ____opt_12:destroy()
+    end
+    local ____opt_14 = self.stage
+    if ____opt_14 ~= nil then
+        ____opt_14:destroy()
+    end
+    local ____opt_16 = self.renderer
+    if ____opt_16 ~= nil then
+        ____opt_16:destroy()
+    end
+    self:emit("didClose")
+end
+local labelHlStyle = nil
+local function getLabelHighlightStyles(self, baseStyle)
+    if labelHlStyle then
+        return labelHlStyle
+    end
+    labelHlStyle = __TS__ArrayMap(
+        HIGHLIGHT_COLORS,
+        function(____, color)
+            local style = baseStyle:clone()
+            style.fill = color
+            return style
+        end
+    )
+    return labelHlStyle
+end
+local detailsHlStyle = nil
+local function getDetailsHighlightStyles(self, baseStyle)
+    if detailsHlStyle then
+        return detailsHlStyle
+    end
+    detailsHlStyle = __TS__ArrayMap(
+        HIGHLIGHT_COLORS,
+        function(____, color)
+            local style = baseStyle:clone()
+            style.fill = color
+            style.fontWeight = "bold"
+            return style
+        end
+    )
+    return detailsHlStyle
+end
+return ____exports
+ end,
+["types"] = function(...) 
+--[[ Generated with https://github.com/TypeScriptToLua/TypeScriptToLua ]]
+local ____exports = {}
+return ____exports
+ end,
 ["utils.lastIndexOf"] = function(...) 
 --[[ Generated with https://github.com/TypeScriptToLua/TypeScriptToLua ]]
 local ____exports = {}
@@ -2895,448 +3343,8 @@ end
 ____exports.default = posix
 return ____exports
  end,
-["pick"] = function(...) 
+["pickers.file"] = function(...) 
 local ____lualib = require("lualib_bundle")
-local __TS__ArrayMap = ____lualib.__TS__ArrayMap
-local __TS__ArrayForEach = ____lualib.__TS__ArrayForEach
-local __TS__ArrayFilter = ____lualib.__TS__ArrayFilter
-local __TS__ArraySort = ____lualib.__TS__ArraySort
-local ____exports = {}
-local fzy = require("fzy-lua-native")
-function ____exports.getEntries(self, opts, args)
-    local entries
-    if opts.values ~= nil then
-        local valuesOpt = opts.values
-        local values = type(valuesOpt) == "function" and valuesOpt(unpack(args)) or valuesOpt
-        entries = __TS__ArrayMap(
-            values,
-            function(____, v) return {label = v, text = v, value = v} end
-        )
-    else
-        local entriesOpt = opts.entries
-        entries = type(entriesOpt) == "function" and entriesOpt(unpack(args)) or entriesOpt
-    end
-    return entries
-end
-function ____exports.onChangeFZY(self, selector, input)
-    local sensitive = input ~= string.lower(input)
-    local filtered = __TS__ArrayFilter(
-        selector.initialEntries,
-        function(____, e, i)
-            local hasMatch = fzy.has_match(input, e.text, sensitive)
-            if hasMatch then
-                e.score = fzy.score(input, e.text, sensitive)
-                e.positions = fzy.positions(input, e.text, sensitive)
-                __TS__ArrayForEach(
-                    e.positions,
-                    function(____, _, i)
-                        local ____e_positions_0, ____temp_1 = e.positions, i + 1
-                        ____e_positions_0[____temp_1] = ____e_positions_0[____temp_1] - 1
-                    end
-                )
-            end
-            return hasMatch
-        end
-    )
-    __TS__ArraySort(
-        filtered,
-        function(____, a, b) return (b.score or 0) - (a.score or 0) end
-    )
-    selector:setEntries(filtered)
-end
-return ____exports
- end,
-["components.Selector"] = function(...) 
-local ____lualib = require("lualib_bundle")
-local __TS__Class = ____lualib.__TS__Class
-local __TS__ClassExtends = ____lualib.__TS__ClassExtends
-local __TS__ObjectAssign = ____lualib.__TS__ObjectAssign
-local __TS__New = ____lualib.__TS__New
-local __TS__ParseInt = ____lualib.__TS__ParseInt
-local __TS__ArrayMap = ____lualib.__TS__ArrayMap
-local ____exports = {}
-local getWindowDimensions, clamp
-local ____kui = require("kui")
-local settings = ____kui.settings
-local editor = ____kui.editor
-local EventEmitter = ____kui.EventEmitter
-local Renderer = ____kui.Renderer
-local Container = ____kui.Container
-local Graphics = ____kui.Graphics
-local Text = ____kui.Text
-local TextStyle = ____kui.TextStyle
-local Input = ____kui.Input
-local ____constants = require("constants")
-local HIGHLIGHT_COLORS = ____constants.HIGHLIGHT_COLORS
-local ____pick = require("pick")
-local onChangeFZY = ____pick.onChangeFZY
-function getWindowDimensions(self)
-    local row, col = unpack(vim.fn.win_screenpos(0))
-    local width = vim.fn.winwidth(0)
-    local height = vim.fn.winheight(0)
-    return {row = row, col = col, width = width, height = height}
-end
-function clamp(self, min, max, value)
-    return math.max(
-        min,
-        math.min(max, value)
-    )
-end
-local cellPixels = settings.DIMENSIONS.cell_pixels
-local screenCells = settings.DIMENSIONS.screen_cells
-local setKeymap = vim.api.nvim_buf_set_keymap
-local COLOR = {FOCUS = 1919121}
-local DESIRED_CELL_WIDTH = 100
-____exports.Selector = __TS__Class()
-local Selector = ____exports.Selector
-Selector.name = "Selector"
-__TS__ClassExtends(Selector, EventEmitter)
-function Selector.prototype.____constructor(self, opts)
-    EventEmitter.prototype.____constructor(self)
-    self.onMountInput = function(____, bufferId)
-        setKeymap(
-            bufferId,
-            "i",
-            "<CR>",
-            "<Esc>:lua require(\"kirby\").selector:accept()<CR>",
-            {noremap = true, silent = true}
-        )
-        setKeymap(
-            bufferId,
-            "i",
-            "<Esc>",
-            "<Esc>:lua require(\"kirby\").selector:close()<CR>",
-            {noremap = true, silent = true}
-        )
-        setKeymap(
-            bufferId,
-            "i",
-            "<A-j>",
-            "<C-o>:lua require(\"kirby\").selector:select(1)<CR>",
-            {noremap = true, silent = true}
-        )
-        setKeymap(
-            bufferId,
-            "i",
-            "<A-k>",
-            "<C-o>:lua require(\"kirby\").selector:select(-1)<CR>",
-            {noremap = true, silent = true}
-        )
-        vim.cmd("startinsert")
-    end
-    self.opts = __TS__ObjectAssign({}, opts)
-    self.opts.prefix = opts.prefix or ""
-    local ____self_opts_1 = self.opts
-    local ____temp_0
-    if opts.singleLine == nil then
-        ____temp_0 = true
-    else
-        ____temp_0 = opts.singleLine
-    end
-    ____self_opts_1.singleLine = ____temp_0
-    opts = self.opts
-    local cw = cellPixels.width
-    local ch = cellPixels.height
-    local window = getWindowDimensions(nil)
-    local marginHorizontal = 5
-    local row = window.row + 2
-    local col = window.col + marginHorizontal
-    local availableWidth = window.width
-    local desiredCellWidth = opts.width or DESIRED_CELL_WIDTH
-    local ____temp_2 = clamp(nil, 10, availableWidth - marginHorizontal * 2, desiredCellWidth) * cw
-    self.width = ____temp_2
-    local width = ____temp_2
-    local ____temp_3 = 20 * ch
-    self.height = ____temp_3
-    local height = ____temp_3
-    local ____temp_4 = 2 * cw
-    self.paddingX = ____temp_4
-    local paddingX = ____temp_4
-    local ____temp_5 = 1 * ch
-    self.paddingY = ____temp_5
-    local paddingY = ____temp_5
-    self.iconWidth = opts.hasIcon and (opts.singleLine and 4 * cw or 3 * cw) or 0
-    self.textPaddingX = self.paddingX + self.iconWidth
-    local ____TS__New_result_6 = __TS__New(Renderer, {col = col, row = row, width = width, height = height})
-    self.renderer = ____TS__New_result_6
-    local renderer = ____TS__New_result_6
-    local ____TS__New_result_7 = __TS__New(Container)
-    self.stage = ____TS__New_result_7
-    local stage = ____TS__New_result_7
-    local hlFloat = editor:getHighlight("NormalFloat")
-    local backgroundColor = hlFloat.background or 4408131
-    local foregroundColor = hlFloat.foreground or 16777215
-    local borderColor = backgroundColor + 3158064
-    local titleTextColor = 13421772
-    self.separatorColor = backgroundColor + 3158064
-    local background = stage:addChild(__TS__New(Graphics))
-    background.x = 0
-    background.y = 0
-    background:beginFill(backgroundColor)
-    background:drawRoundedRect(
-        0,
-        0,
-        width,
-        height,
-        20
-    )
-    background:endFill()
-    background:lineStyle(2, borderColor, 1)
-    background:drawRoundedRect(
-        0,
-        0,
-        width,
-        height,
-        20
-    )
-    local prefix = opts.prefix
-    local inputX = paddingX + #prefix * cw
-    local ____temp_8 = stage:addChild(__TS__New(Input, {width = width - 4 * cw - #prefix * cw, color = foregroundColor}))
-    self.input = ____temp_8
-    local input = ____temp_8
-    input.x = inputX
-    input.y = 1 * ch
-    input:onMount(self.onMountInput)
-    self.focus = nil
-    if opts.name ~= nil then
-        local name = __TS__New(
-            Text,
-            opts.name,
-            __TS__New(TextStyle, {fill = titleTextColor, fontSize = settings.DEFAULT_FONT_SIZE * 0.8})
-        )
-        name.x = inputX
-        name.y = 0
-        stage:addChild(name)
-    end
-    if opts.prefix ~= nil then
-        local color = opts.prefixColor == nil and titleTextColor or (type(opts.prefixColor) == "number" and opts.prefixColor or (editor:getHighlight(opts.prefixColor).foreground or 16777215))
-        local prefix = __TS__New(
-            Text,
-            opts.prefix,
-            __TS__New(TextStyle, {fill = color})
-        )
-        prefix.x = paddingX
-        prefix.y = 1 * ch
-        stage:addChild(prefix)
-    end
-    local containerY = input.y + input.height + 0.5 * ch
-    local containerHeight = height - containerY - paddingY
-    local ____temp_9 = stage:addChild(__TS__New(Graphics))
-    self.container = ____temp_9
-    local container = ____temp_9
-    container.x = 0
-    container.y = input.y + input.height + 0.5 * ch
-    self.labelStyle = __TS__New(TextStyle, {fill = foregroundColor})
-    self.detailsStyle = __TS__New(TextStyle, {fill = foregroundColor - 4210752, fontSize = TextStyle.defaultStyle.fontSize * 0.9})
-    self.didInit = false
-    self.initialEntries = {}
-    self.entries = {}
-    self.maxEntries = math.floor(containerHeight / ch)
-    self.activeIndex = -1
-    self.entryHeight = self.opts.singleLine and 2 * ch or 3 * ch
-    renderer:render(stage)
-    self:onAccept(opts.onAccept)
-    self:onChange(opts.onChange or onChangeFZY)
-end
-function Selector.prototype.onChange(self, fn)
-    self.input:onChange(function(____, input)
-        fn(nil, self, input)
-    end)
-end
-function Selector.prototype.onDidClose(self, fn)
-    self:on("didClose", fn)
-end
-function Selector.prototype.onAccept(self, callback)
-    local fn = type(callback) == "function" and callback or (function(____, entry)
-        vim.cmd((callback .. " ") .. entry.text)
-    end)
-    self:on("accept", fn)
-end
-function Selector.prototype.accept(self)
-    self:close()
-    local entry = self.entries[self.activeIndex + 1]
-    if entry ~= nil then
-        self:emit("accept", entry)
-    end
-end
-function Selector.prototype.select(self, direction)
-    if self.activeIndex == -1 or not self.focus then
-        return
-    end
-    self.activeIndex = self.activeIndex + direction
-    if self.activeIndex < 0 then
-        self.activeIndex = self.activeIndex + #self.entries
-    end
-    if self.activeIndex >= #self.entries then
-        self.activeIndex = self.activeIndex - #self.entries
-    end
-    self.focus.y = self.activeIndex * self.entryHeight
-    self:render()
-end
-function Selector.prototype.setInitialEntries(self, entries)
-    self.didInit = true
-    self.initialEntries = entries
-    self:setEntries(self.initialEntries)
-end
-function Selector.prototype.drawMessage(self, message)
-    local style = __TS__New(
-        TextStyle,
-        {
-            fill = editor:getHighlight("comment").foreground or 16777215,
-            fontSize = settings.DEFAULT_FONT_SIZE
-        }
-    )
-    local textEntry = self.container:addChild(__TS__New(Text, message, style))
-    textEntry.y = 0.5 * cellPixels.height
-    textEntry.x = self.textPaddingX
-end
-function Selector.prototype.setEntries(self, entries)
-    local isEmpty = #entries == 0
-    self.entries = entries
-    self.activeIndex = not isEmpty and 0 or -1
-    local cw = cellPixels.width
-    local ch = cellPixels.height
-    local container = self.container
-    while #container.children > 0 do
-        container:removeChildAt(0)
-    end
-    if isEmpty then
-        self:drawMessage(self.didInit and "No results" or "Loading entries...")
-        self:render()
-        return
-    end
-    local ____self_opts_10 = self.opts
-    local hasIcon = ____self_opts_10.hasIcon
-    local singleLine = ____self_opts_10.singleLine
-    local function yForIndex(____, i)
-        return i * self.entryHeight
-    end
-    if not isEmpty then
-        local ____temp_11 = container:addChild(__TS__New(Graphics))
-        self.focus = ____temp_11
-        local focus = ____temp_11
-        focus.y = yForIndex(nil, self.activeIndex)
-        local bg = focus:addChild(__TS__New(Graphics))
-        bg:beginFill(COLOR.FOCUS)
-        bg:drawRect(0 - 5, 0, self.width + 10, self.entryHeight)
-    end
-    local i = 0
-    for ____, entry in ipairs(entries) do
-        local line = container:addChild(__TS__New(Container))
-        line.y = yForIndex(nil, i)
-        local currentX = self.paddingX
-        if hasIcon then
-            if entry.icon then
-                local style = self.labelStyle:clone()
-                if entry.iconColor then
-                    style.fill = __TS__ParseInt(
-                        string.sub(entry.iconColor, 2),
-                        16
-                    )
-                end
-                if not singleLine then
-                    style.fontSize = settings.DEFAULT_FONT_SIZE * 1.2
-                end
-                local textIcon = line:addChild(__TS__New(Text, entry.icon, style))
-                textIcon.x = singleLine and currentX or 1.5 * cw
-                textIcon.y = singleLine and 0 or 0.8 * ch
-            end
-            currentX = currentX + self.iconWidth
-        end
-        do
-            local label = entry.label
-            local textEntry = line:addChild(__TS__New(Text, label, self.labelStyle))
-            textEntry.y = singleLine and 0.5 * ch or 0.5 * ch
-            textEntry.x = currentX
-            currentX = currentX + textEntry.width
-        end
-        currentX = currentX + 1 * cw
-        if entry.details ~= nil then
-            local details = entry.details
-            local textEntry = line:addChild(__TS__New(Text, details, self.detailsStyle))
-            if not singleLine then
-                textEntry.y = 1.5 * ch
-                textEntry.x = self.textPaddingX
-            else
-                textEntry.y = 0.5 * ch
-                textEntry.x = currentX
-            end
-            currentX = currentX + textEntry.width
-        end
-        do
-            local separator = line:addChild(__TS__New(Graphics))
-            separator.x = 0
-            separator.y = 0
-            separator:lineStyle(2, self.separatorColor, 0.5)
-            separator:moveTo(0, 0)
-            separator:lineTo(self.width, 0)
-        end
-        if i + 1 == self.maxEntries or entry == entries[#entries] then
-            local separator = line:addChild(__TS__New(Graphics))
-            separator.x = 0
-            separator.y = self.entryHeight
-            separator:lineStyle(2, self.separatorColor, 0.5)
-            separator:moveTo(0, 0)
-            separator:lineTo(self.width, 0)
-        end
-        i = i + 1
-        if i >= self.maxEntries then
-            break
-        end
-    end
-    self:render()
-end
-function Selector.prototype.render(self)
-    self.renderer:render(self.stage)
-end
-function Selector.prototype.close(self)
-    self.input:destroy()
-    self.stage:destroy()
-    self.renderer:destroy()
-    self:emit("didClose")
-end
-local labelHlStyle = nil
-local function getLabelHighlightStyles(self, baseStyle)
-    if labelHlStyle then
-        return labelHlStyle
-    end
-    labelHlStyle = __TS__ArrayMap(
-        HIGHLIGHT_COLORS,
-        function(____, color)
-            local style = baseStyle:clone()
-            style.fill = color
-            return style
-        end
-    )
-    return labelHlStyle
-end
-local detailsHlStyle = nil
-local function getDetailsHighlightStyles(self, baseStyle)
-    if detailsHlStyle then
-        return detailsHlStyle
-    end
-    detailsHlStyle = __TS__ArrayMap(
-        HIGHLIGHT_COLORS,
-        function(____, color)
-            local style = baseStyle:clone()
-            style.fill = color
-            style.fontWeight = "bold"
-            return style
-        end
-    )
-    return detailsHlStyle
-end
-return ____exports
- end,
-["types"] = function(...) 
---[[ Generated with https://github.com/TypeScriptToLua/TypeScriptToLua ]]
-local ____exports = {}
-return ____exports
- end,
-["index"] = function(...) 
-local ____lualib = require("lualib_bundle")
-local __TS__New = ____lualib.__TS__New
-local __TS__ObjectKeys = ____lualib.__TS__ObjectKeys
 local __TS__StringTrim = ____lualib.__TS__StringTrim
 local __TS__StringSplit = ____lualib.__TS__StringSplit
 local __TS__ArrayMap = ____lualib.__TS__ArrayMap
@@ -3346,14 +3354,71 @@ local ____path = require("path.index")
 local path = ____path.default
 local ____icons = require("icons")
 local getIcon = ____icons.getIcon
+local fileCommand = vim.fn.executable("fd") ~= 0 and "fd -t f" or "git ls-files"
+____exports.default = {
+    id = "file",
+    prefix = "Open ",
+    prefixColor = "comment",
+    hasIcon = true,
+    singleLine = false,
+    entries = function(args)
+        local directory = unpack(args)
+        if directory == nil then
+            directory = "."
+        end
+        local entries = __TS__ArrayMap(
+            __TS__StringSplit(
+                __TS__StringTrim(vim.fn.system((("cd " .. tostring(directory)) .. " && ") .. fileCommand)),
+                "\n"
+            ),
+            function(____, line)
+                local parsed = path:parse(line)
+                local ____getIcon_result_0 = getIcon(nil, parsed.base, parsed.ext)
+                local icon = ____getIcon_result_0.icon
+                local color = ____getIcon_result_0.color
+                local directory = __TS__StringTrim(parsed.dir)
+                if not directory or directory == "" then
+                    directory = "."
+                end
+                directory = directory .. "/ "
+                return {
+                    icon = icon,
+                    iconColor = color,
+                    label = parsed.base,
+                    details = directory,
+                    text = line,
+                    value = line,
+                    labelOffset = #parsed.dir > 0 and #parsed.dir + 1 or 0,
+                    detailsOffset = 0
+                }
+            end
+        )
+        __TS__ArraySort(
+            entries,
+            function(____, a, b)
+                return #a.text - #b.text
+            end
+        )
+        return entries
+    end,
+    onAccept = "edit"
+}
+return ____exports
+ end,
+["index"] = function(...) 
+local ____lualib = require("lualib_bundle")
+local __TS__New = ____lualib.__TS__New
+local __TS__ObjectKeys = ____lualib.__TS__ObjectKeys
+local ____exports = {}
 local ____Selector = require("components.Selector")
 local Selector = ____Selector.Selector
 local ____pick = require("pick")
 local getEntries = ____pick.getEntries
 local onChangeFZY = ____pick.onChangeFZY
+local ____file = require("pickers.file")
+local file = ____file.default
 ____exports.selector = nil
 ____exports.pickers = {}
-local fileCommand = vim.fn.executable("fd") ~= 0 and "fd -t f" or "git ls-files"
 function ____exports.open(opts, ...)
     local args = {...}
     local ____opt_0 = ____exports.selector
@@ -3361,7 +3426,7 @@ function ____exports.open(opts, ...)
         ____exports.selector:close()
     end
     ____exports.selector = __TS__New(Selector, opts)
-    ____exports.selector:setInitialEntries(getEntries(nil, opts, args))
+    ____exports.selector:setInitialEntries(getEntries(opts, args))
     ____exports.selector:onChange(onChangeFZY)
     ____exports.selector:onDidClose(function()
         ____exports.selector = nil
@@ -3377,8 +3442,8 @@ function ____exports.close(self)
     end
     ____exports.selector = nil
 end
-function ____exports.register(id, opts)
-    ____exports.pickers[id] = opts
+function ____exports.register(opts)
+    ____exports.pickers[opts.id] = opts
 end
 function ____exports.openPickerByID(id, ...)
     local args = {...}
@@ -3388,56 +3453,7 @@ function ____exports.openPickerByID(id, ...)
         print("Could not find picker " .. id)
     end
 end
-____exports.register(
-    "file",
-    {
-        prefix = "Open ",
-        prefixColor = "comment",
-        hasIcon = true,
-        singleLine = false,
-        entries = function(args)
-            local directory = unpack(args)
-            if directory == nil then
-                directory = "."
-            end
-            local entries = __TS__ArrayMap(
-                __TS__StringSplit(
-                    __TS__StringTrim(vim.fn.system((("cd " .. tostring(directory)) .. " && ") .. fileCommand)),
-                    "\n"
-                ),
-                function(____, line)
-                    local parsed = path:parse(line)
-                    local ____getIcon_result_4 = getIcon(nil, parsed.base, parsed.ext)
-                    local icon = ____getIcon_result_4.icon
-                    local color = ____getIcon_result_4.color
-                    local directory = __TS__StringTrim(parsed.dir)
-                    if not directory or directory == "" then
-                        directory = "."
-                    end
-                    directory = directory .. "/ "
-                    return {
-                        icon = icon,
-                        iconColor = color,
-                        label = parsed.base,
-                        details = directory,
-                        text = line,
-                        value = line,
-                        labelOffset = #parsed.dir > 0 and #parsed.dir + 1 or 0,
-                        detailsOffset = 0
-                    }
-                end
-            )
-            __TS__ArraySort(
-                entries,
-                function(____, a, b)
-                    return #a.text - #b.text
-                end
-            )
-            return entries
-        end,
-        onAccept = "edit"
-    }
-)
+____exports.register(file)
 function ____exports.openFilePicker(directory)
     if directory == nil then
         directory = "."

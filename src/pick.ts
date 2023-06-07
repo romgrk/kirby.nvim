@@ -2,8 +2,7 @@ import * as fzy from 'fzy-lua-native'
 import type { Entry, Picker } from './types'
 import type { Selector } from './components/Selector'
 
-
-export function getEntries(opts: Picker, args: any[]) {
+export function getEntries(this: void, opts: Picker, args: any[]) {
   let entries: Entry[]
   if ('values' in opts) {
     const valuesOpt = opts.values
@@ -18,6 +17,7 @@ export function getEntries(opts: Picker, args: any[]) {
 }
 
 export function onChangeFZY(
+  this: void,
   selector: Selector,
   input: string
 ) {

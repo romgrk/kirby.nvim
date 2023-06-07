@@ -163,8 +163,9 @@ export class Selector extends EventEmitter<Events> {
   }
 
   onChange(fn: ChangeFn) {
-    this.input.onChange(input => {
-      fn(this, input)
+    const self = this
+    this.input.onChange(function(input) {
+      fn(self, input)
     })
   }
 
@@ -367,9 +368,9 @@ export class Selector extends EventEmitter<Events> {
   }
 
   close() {
-    this.input.destroy()
-    this.stage.destroy()
-    this.renderer.destroy()
+    this.input?.destroy()
+    this.stage?.destroy()
+    this.renderer?.destroy()
     this.emit('didClose')
   }
 }
