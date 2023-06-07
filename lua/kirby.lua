@@ -2730,12 +2730,10 @@ function Selector.prototype.____constructor(self, opts)
     local paddingY = ____temp_5
     self.iconWidth = opts.hasIcon and (opts.singleLine and 4 * cw or 3 * cw) or 0
     self.textPaddingX = self.paddingX + self.iconWidth
-    local ____TS__New_result_6 = __TS__New(Renderer, {col = col, row = row, width = width, height = height})
-    self.renderer = ____TS__New_result_6
-    local renderer = ____TS__New_result_6
-    local ____TS__New_result_7 = __TS__New(Container)
-    self.stage = ____TS__New_result_7
-    local stage = ____TS__New_result_7
+    self.renderer = __TS__New(Renderer, {col = col, row = row, width = width, height = height})
+    local ____TS__New_result_6 = __TS__New(Container)
+    self.stage = ____TS__New_result_6
+    local stage = ____TS__New_result_6
     local hlFloat = editor:getHighlight("NormalFloat")
     local backgroundColor = hlFloat.background or 4408131
     local foregroundColor = hlFloat.foreground or 16777215
@@ -2764,9 +2762,9 @@ function Selector.prototype.____constructor(self, opts)
     )
     local prefix = opts.prefix
     local inputX = paddingX + #prefix * cw
-    local ____temp_8 = stage:addChild(__TS__New(Input, {width = width - 4 * cw - #prefix * cw, color = foregroundColor}))
-    self.input = ____temp_8
-    local input = ____temp_8
+    local ____temp_7 = stage:addChild(__TS__New(Input, {width = width - 4 * cw - #prefix * cw, color = foregroundColor}))
+    self.input = ____temp_7
+    local input = ____temp_7
     input.x = inputX
     input.y = 1 * ch
     input:onMount(self.onMountInput)
@@ -2794,9 +2792,9 @@ function Selector.prototype.____constructor(self, opts)
     end
     local containerY = input.y + input.height + 0.5 * ch
     local containerHeight = height - containerY - paddingY
-    local ____temp_9 = stage:addChild(__TS__New(Graphics))
-    self.container = ____temp_9
-    local container = ____temp_9
+    local ____temp_8 = stage:addChild(__TS__New(Graphics))
+    self.container = ____temp_8
+    local container = ____temp_8
     container.x = 0
     container.y = input.y + input.height + 0.5 * ch
     self.labelStyle = __TS__New(TextStyle, {fill = foregroundColor})
@@ -2809,7 +2807,6 @@ function Selector.prototype.____constructor(self, opts)
     self.entryHeight = self.opts.singleLine and 2 * ch or 3 * ch
     self:onAccept(opts.onAccept)
     self:onChange(opts.onChange or onChangeFZY)
-    self:render()
 end
 function Selector.prototype.onChange(self, fn)
     local ____self = self
@@ -2879,16 +2876,16 @@ function Selector.prototype.setEntries(self, entries)
         self:render()
         return
     end
-    local ____self_opts_10 = self.opts
-    local hasIcon = ____self_opts_10.hasIcon
-    local singleLine = ____self_opts_10.singleLine
+    local ____self_opts_9 = self.opts
+    local hasIcon = ____self_opts_9.hasIcon
+    local singleLine = ____self_opts_9.singleLine
     local function yForIndex(____, i)
         return i * self.entryHeight
     end
     if not isEmpty then
-        local ____temp_11 = container:addChild(__TS__New(Graphics))
-        self.focus = ____temp_11
-        local focus = ____temp_11
+        local ____temp_10 = container:addChild(__TS__New(Graphics))
+        self.focus = ____temp_10
+        local focus = ____temp_10
         focus.y = yForIndex(nil, self.activeIndex)
         local bg = focus:addChild(__TS__New(Graphics))
         bg:beginFill(COLOR.FOCUS)
@@ -2964,17 +2961,17 @@ function Selector.prototype.render(self)
     self.renderer:render(self.stage)
 end
 function Selector.prototype.close(self)
-    local ____opt_12 = self.input
-    if ____opt_12 ~= nil then
-        ____opt_12:destroy()
+    local ____opt_11 = self.input
+    if ____opt_11 ~= nil then
+        ____opt_11:destroy()
     end
-    local ____opt_14 = self.stage
-    if ____opt_14 ~= nil then
-        ____opt_14:destroy()
+    local ____opt_13 = self.stage
+    if ____opt_13 ~= nil then
+        ____opt_13:destroy()
     end
-    local ____opt_16 = self.renderer
-    if ____opt_16 ~= nil then
-        ____opt_16:destroy()
+    local ____opt_15 = self.renderer
+    if ____opt_15 ~= nil then
+        ____opt_15:destroy()
     end
     self:emit("didClose")
 end
@@ -3366,11 +3363,12 @@ ____exports.default = {
         if directory == nil then
             directory = "."
         end
+        local lines = __TS__StringSplit(
+            __TS__StringTrim(vim.fn.system((("cd " .. tostring(directory)) .. " && ") .. fileCommand)),
+            "\n"
+        )
         local entries = __TS__ArrayMap(
-            __TS__StringSplit(
-                __TS__StringTrim(vim.fn.system((("cd " .. tostring(directory)) .. " && ") .. fileCommand)),
-                "\n"
-            ),
+            lines,
             function(____, line)
                 local parsed = path:parse(line)
                 local ____getIcon_result_0 = getIcon(nil, parsed.base, parsed.ext)
@@ -3552,20 +3550,18 @@ function ____exports.open(opts, ...)
         ____exports.selector:close()
     end
     ____exports.selector = __TS__New(Selector, opts)
+    ____exports.selector:setInitialEntries(getEntries(opts, args))
+    ____exports.selector:onChange(onChangeFZY)
     ____exports.selector:onDidClose(function()
         ____exports.selector = nil
     end)
-    ____exports.timer = __TS__New(
-        Timer,
-        10,
+    local ____self_6 = Timer:wait(100)
+    ____self_6["then"](
+        ____self_6,
         function()
             local ____opt_4 = ____exports.selector
             if ____opt_4 ~= nil then
-                ____exports.selector:setInitialEntries(getEntries(opts, args))
-            end
-            local ____opt_6 = ____exports.selector
-            if ____opt_6 ~= nil then
-                ____exports.selector:onChange(onChangeFZY)
+                ____exports.selector:render()
             end
         end
     )
@@ -3574,8 +3570,8 @@ function ____exports.listPickers(self)
     return __TS__ObjectKeys(____exports.pickers)
 end
 function ____exports.close(self)
-    local ____opt_8 = ____exports.selector
-    if ____opt_8 ~= nil then
+    local ____opt_7 = ____exports.selector
+    if ____opt_7 ~= nil then
         ____exports.selector:close()
     end
     ____exports.selector = nil

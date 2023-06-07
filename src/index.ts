@@ -15,13 +15,13 @@ export function open(this: void, opts: Picker, ...args: any[]) {
   selector?.close()
 
   selector = new Selector(opts)
+  selector.setInitialEntries(getEntries(opts, args))
+  selector.onChange(onChangeFZY)
   selector.onDidClose(() => {
     selector = null
   })
-
-  timer = new Timer(10, () => {
-    selector?.setInitialEntries(getEntries(opts, args))
-    selector?.onChange(onChangeFZY)
+  Timer.wait(100).then(() => {
+    selector?.render()
   })
 }
 

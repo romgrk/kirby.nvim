@@ -79,7 +79,7 @@ export class Selector extends EventEmitter<Events> {
     this.iconWidth = opts.hasIcon ? (opts.singleLine ? 4 * cw : 3 * cw) : 0
     this.textPaddingX = this.paddingX + this.iconWidth
 
-    const renderer = this.renderer = new Renderer({ col, row, width, height })
+    this.renderer = new Renderer({ col, row, width, height })
     const stage = this.stage = new Container()
 
     const hlFloat = editor.getHighlight('NormalFloat')
@@ -157,8 +157,6 @@ export class Selector extends EventEmitter<Events> {
 
     this.onAccept(opts.onAccept)
     this.onChange(opts.onChange ?? onChangeFZY)
-
-    this.render()
   }
 
   onChange(fn: ChangeFn) {
