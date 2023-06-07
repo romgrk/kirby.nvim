@@ -58,6 +58,14 @@ Run a vim command.
 
 ![demo](./assets/picker-commands-run.png)
 
+#### `Kirby coc-diagnostics`
+
+Diagnostics via coc.nvim
+
+#### `Kirby coc-workspaces-symbols`
+
+Workspace symbols via coc.nvim
+
 ## Adding pickers
 
 **NOTE**: Expect breaking changes from time to time, this is still evolving.

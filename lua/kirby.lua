@@ -2657,7 +2657,7 @@ ____exports.Selector = __TS__Class()
 local Selector = ____exports.Selector
 Selector.name = "Selector"
 __TS__ClassExtends(Selector, EventEmitter)
-function Selector.prototype.____constructor(self, opts, args)
+function Selector.prototype.____constructor(self, startBuffer, opts, args)
     EventEmitter.prototype.____constructor(self)
     self.onMountInput = function(____, bufferId)
         setKeymap(
@@ -2690,7 +2690,7 @@ function Selector.prototype.____constructor(self, opts, args)
         )
         vim.cmd("startinsert")
     end
-    self.args = args
+    self.startBuffer = startBuffer
     self.opts = __TS__ObjectAssign({}, opts)
     local ____self_opts_1 = self.opts
     local ____temp_0
@@ -2700,6 +2700,7 @@ function Selector.prototype.____constructor(self, opts, args)
         ____temp_0 = opts.singleLine
     end
     ____self_opts_1.singleLine = ____temp_0
+    self.args = args
     opts = self.opts
     local cw = cellPixels.width
     local ch = cellPixels.height
@@ -2721,7 +2722,7 @@ function Selector.prototype.____constructor(self, opts, args)
     local ____temp_5 = 1 * ch
     self.paddingY = ____temp_5
     local paddingY = ____temp_5
-    self.iconWidth = opts.hasIcon and (opts.singleLine and 4 * cw or 3 * cw) or 0
+    self.iconWidth = opts.hasIcon and (opts.singleLine and 3 * cw or 3 * cw) or 0
     self.textPaddingX = self.paddingX + self.iconWidth
     self.renderer = __TS__New(Renderer, {col = col, row = row, width = width, height = height})
     local ____TS__New_result_6 = __TS__New(Container)
@@ -2905,17 +2906,17 @@ function Selector.prototype.setEntries(self, entries)
             if entry.icon then
                 local style = self.labelStyle:clone()
                 if entry.iconColor then
-                    style.fill = __TS__ParseInt(
+                    style.fill = type(entry.iconColor) == "string" and __TS__ParseInt(
                         string.sub(entry.iconColor, 2),
                         16
-                    )
+                    ) or entry.iconColor
                 end
                 if not singleLine then
                     style.fontSize = settings.DEFAULT_FONT_SIZE * 1.2
                 end
                 local textIcon = line:addChild(__TS__New(Text, entry.icon, style))
                 textIcon.x = singleLine and currentX or 1.5 * cw
-                textIcon.y = singleLine and 0 or 0.8 * ch
+                textIcon.y = singleLine and 0.5 * ch or 0.8 * ch
             end
             currentX = currentX + self.iconWidth
         end
@@ -3048,38 +3049,40 @@ function ____exports.open(opts, args)
     if ____opt_2 ~= nil then
         ____exports.selector:close()
     end
-    ____exports.selector = __TS__New(Selector, opts, args)
+    local ____opt_4 = ____exports.selector
+    local startBuffer = ____opt_4 and ____exports.selector.startBuffer or vim.api.nvim_get_current_buf()
+    ____exports.selector = __TS__New(Selector, startBuffer, opts, args)
     ____exports.selector:setInitialEntries(getEntries(opts, args))
     ____exports.selector:onChange(opts.onChange or onChangeDefault)
     ____exports.selector:onDidClose(function()
         ____exports.selector = nil
     end)
-    local ____self_6 = Timer:wait(100)
-    ____self_6["then"](
-        ____self_6,
+    local ____self_8 = Timer:wait(100)
+    ____self_8["then"](
+        ____self_8,
         function()
-            local ____opt_4 = ____exports.selector
-            if ____opt_4 ~= nil then
+            local ____opt_6 = ____exports.selector
+            if ____opt_6 ~= nil then
                 ____exports.selector:render()
             end
         end
     )
 end
 function ____exports.select(n)
-    local ____opt_7 = ____exports.selector
-    if ____opt_7 ~= nil then
+    local ____opt_9 = ____exports.selector
+    if ____opt_9 ~= nil then
         ____exports.selector:select(n)
     end
 end
 function ____exports.accept()
-    local ____opt_9 = ____exports.selector
-    if ____opt_9 ~= nil then
+    local ____opt_11 = ____exports.selector
+    if ____opt_11 ~= nil then
         ____exports.selector:accept()
     end
 end
 function ____exports.close()
-    local ____opt_11 = ____exports.selector
-    if ____opt_11 ~= nil then
+    local ____opt_13 = ____exports.selector
+    if ____opt_13 ~= nil then
         ____exports.selector:close()
     end
     ____exports.selector = nil
@@ -3507,74 +3510,6 @@ ____exports.default = {
 }
 return ____exports
  end,
-["pickers.ctags"] = function(...) 
-local ____lualib = require("lualib_bundle")
-local __TS__StringTrim = ____lualib.__TS__StringTrim
-local __TS__StringSplit = ____lualib.__TS__StringSplit
-local __TS__ParseInt = ____lualib.__TS__ParseInt
-local __TS__ArraySlice = ____lualib.__TS__ArraySlice
-local __TS__StringTrimStart = ____lualib.__TS__StringTrimStart
-local __TS__ArrayMap = ____lualib.__TS__ArrayMap
-local __TS__ArraySort = ____lualib.__TS__ArraySort
-local ____exports = {}
-local currentFile = {
-    id = "ctags-current-file",
-    prefix = "Jump to ",
-    prefixColor = "comment",
-    hasIcon = false,
-    singleLine = true,
-    detailsAlign = "right",
-    entries = function()
-        local file = vim.fn.bufname()
-        if not file or file == "" then
-            return {}
-        end
-        local lines = __TS__StringSplit(
-            __TS__StringTrim(vim.fn.system("ctags --excmd=combine -f- " .. file)),
-            "\n"
-        )
-        local entries = __TS__ArrayMap(
-            lines,
-            function(____, line)
-                local symbol, _file, address, _type = unpack(__TS__StringSplit(line, "\t"))
-                local addressParts = __TS__StringSplit(address, ";")
-                local lineNumber = __TS__ParseInt(addressParts[1])
-                local rest = table.concat(
-                    __TS__ArraySlice(addressParts, 1),
-                    ";"
-                )
-                local pattern = string.sub(
-                    string.sub(rest, 3),
-                    1,
-                    -5
-                )
-                local code = __TS__StringTrim(pattern)
-                local columnNumber = #pattern - #__TS__StringTrimStart(pattern)
-                local text = (tostring(lineNumber) .. ": ") .. symbol
-                return {
-                    label = text,
-                    details = code,
-                    text = text,
-                    value = text,
-                    data = {lineNumber = lineNumber, columnNumber = columnNumber}
-                }
-            end
-        )
-        __TS__ArraySort(
-            entries,
-            function(____, a, b)
-                return a.data.lineNumber - b.data.lineNumber
-            end
-        )
-        return entries
-    end,
-    onAccept = function(entry)
-        vim.api.nvim_win_set_cursor(0, {entry.data.lineNumber, entry.data.columnNumber})
-    end
-}
-____exports.default = {currentFile = currentFile}
-return ____exports
- end,
 ["pickers.commands"] = function(...) 
 local ____lualib = require("lualib_bundle")
 local __TS__ObjectValues = ____lualib.__TS__ObjectValues
@@ -3703,16 +3638,197 @@ local run = {
 ____exports.default = {list = list, run = run}
 return ____exports
  end,
+["pickers.ctags"] = function(...) 
+local ____lualib = require("lualib_bundle")
+local __TS__StringTrim = ____lualib.__TS__StringTrim
+local __TS__StringSplit = ____lualib.__TS__StringSplit
+local __TS__ParseInt = ____lualib.__TS__ParseInt
+local __TS__ArraySlice = ____lualib.__TS__ArraySlice
+local __TS__StringTrimStart = ____lualib.__TS__StringTrimStart
+local __TS__ArrayMap = ____lualib.__TS__ArrayMap
+local __TS__ArraySort = ____lualib.__TS__ArraySort
+local ____exports = {}
+local currentFile = {
+    id = "ctags-current-file",
+    prefix = "Jump to ",
+    prefixColor = "comment",
+    hasIcon = false,
+    singleLine = true,
+    detailsAlign = "right",
+    entries = function()
+        local file = vim.fn.bufname()
+        if not file or file == "" then
+            return {}
+        end
+        local lines = __TS__StringSplit(
+            __TS__StringTrim(vim.fn.system("ctags --excmd=combine -f- " .. file)),
+            "\n"
+        )
+        local entries = __TS__ArrayMap(
+            lines,
+            function(____, line)
+                local symbol, _file, address, _type = unpack(__TS__StringSplit(line, "\t"))
+                local addressParts = __TS__StringSplit(address, ";")
+                local lineNumber = __TS__ParseInt(addressParts[1])
+                local rest = table.concat(
+                    __TS__ArraySlice(addressParts, 1),
+                    ";"
+                )
+                local pattern = string.sub(
+                    string.sub(rest, 3),
+                    1,
+                    -5
+                )
+                local code = __TS__StringTrim(pattern)
+                local columnNumber = #pattern - #__TS__StringTrimStart(pattern)
+                local text = (tostring(lineNumber) .. ": ") .. symbol
+                return {
+                    label = text,
+                    details = code,
+                    text = text,
+                    value = text,
+                    data = {lineNumber = lineNumber, columnNumber = columnNumber}
+                }
+            end
+        )
+        __TS__ArraySort(
+            entries,
+            function(____, a, b)
+                return a.data.lineNumber - b.data.lineNumber
+            end
+        )
+        return entries
+    end,
+    onAccept = function(entry)
+        vim.api.nvim_win_set_cursor(0, {entry.data.lineNumber, entry.data.columnNumber})
+    end
+}
+____exports.default = {currentFile = currentFile}
+return ____exports
+ end,
+["pickers.coc"] = function(...) 
+local ____lualib = require("lualib_bundle")
+local __TS__ArrayMap = ____lualib.__TS__ArrayMap
+local __TS__ArraySlice = ____lualib.__TS__ArraySlice
+local ____exports = {}
+local ____kui = require("kui")
+local editor = ____kui.editor
+local ICON_BY_SEVERITY = {Error = "", Warning = "", Information = "", Hint = ""}
+local COLOR_BY_SEVERITY = {Error = "CocErrorSign", Warning = "CocWarningSign", Information = "CocInfoSign", Hint = "CocHintSign"}
+local function getDiagnostics(self)
+    local buffer = vim.fn.bufnr("%")
+    if not vim.api.nvim_buf_get_option(buffer, "buflisted") then
+        buffer = vim.fn.bufnr("#")
+    end
+    local fn = vim.fn.CocAction
+    local diagnostics = fn("diagnosticList") or ({})
+    local colorBySeverity = {
+        Error = editor:getHighlight(COLOR_BY_SEVERITY.Error).foreground or 16777215,
+        Warning = editor:getHighlight(COLOR_BY_SEVERITY.Warning).foreground or 16777215,
+        Information = editor:getHighlight(COLOR_BY_SEVERITY.Information).foreground or 16777215,
+        Hint = editor:getHighlight(COLOR_BY_SEVERITY.Hint).foreground or 16777215
+    }
+    return __TS__ArrayMap(
+        diagnostics,
+        function(____, d)
+            local line = d.location.range.start.line
+            local label = d.message
+            local details = (vim.fn.fnamemodify(d.file, ":~:.") .. ":") .. tostring(line)
+            local text = (details .. " ") .. label
+            return {
+                icon = ICON_BY_SEVERITY[d.severity],
+                iconColor = colorBySeverity[d.severity],
+                label = label,
+                details = details,
+                text = text,
+                value = text,
+                data = d
+            }
+        end
+    )
+end
+local diagnostics = {
+    id = "coc-diagnostics",
+    prefix = "Jump to ",
+    prefixColor = "comment",
+    hasIcon = true,
+    singleLine = true,
+    detailsAlign = "right",
+    entries = function()
+        return getDiagnostics(nil)
+    end,
+    onAccept = function(entry)
+        local d = entry.data
+        vim.cmd("edit " .. d.file)
+        vim.cmd("normal! zz")
+        vim.api.nvim_win_set_cursor(0, {d.location.range.start.line + 1, d.location.range.start.character})
+    end
+}
+local function getSymbols(self, input)
+    local buffer = vim.fn.bufnr("%")
+    if not vim.api.nvim_buf_get_option(buffer, "buflisted") then
+        buffer = vim.fn.bufnr("#")
+    end
+    local fn = vim.fn.CocAction
+    local symbols = __TS__ArraySlice(
+        fn("getWorkspaceSymbols", input, buffer) or ({}),
+        0,
+        20
+    )
+    return __TS__ArrayMap(
+        symbols,
+        function(____, symbol)
+            local line = symbol.location.range.start.line
+            local text = symbol.name
+            return {
+                label = text,
+                details = (vim.fn.fnamemodify(
+                    string.sub(symbol.location.uri, 8),
+                    ":~:."
+                ) .. ":") .. tostring(line),
+                text = text,
+                value = text,
+                data = symbol
+            }
+        end
+    )
+end
+local workspaceSymbols = {
+    id = "coc-workspace-symbols",
+    prefix = "Jump to ",
+    prefixColor = "comment",
+    hasIcon = false,
+    singleLine = true,
+    detailsAlign = "right",
+    entries = function()
+        return getSymbols(nil, "")
+    end,
+    onChange = function(selector, input)
+        local symbols = getSymbols(nil, input)
+        selector:setEntries(symbols)
+    end,
+    onAccept = function(entry)
+        local symbol = entry.data
+        vim.cmd("edit " .. string.sub(symbol.location.uri, 8))
+        vim.cmd("normal! zz")
+        vim.api.nvim_win_set_cursor(0, {symbol.location.range.start.line + 1, symbol.location.range.start.character})
+    end
+}
+____exports.default = {diagnostics = diagnostics, workspaceSymbols = workspaceSymbols}
+return ____exports
+ end,
 ["index"] = function(...) 
 --[[ Generated with https://github.com/TypeScriptToLua/TypeScriptToLua ]]
 local ____exports = {}
 local api = require("api")
 local ____files = require("pickers.files")
 local files = ____files.default
-local ____ctags = require("pickers.ctags")
-local ctags = ____ctags.default
 local ____commands = require("pickers.commands")
 local commands = ____commands.default
+local ____ctags = require("pickers.ctags")
+local ctags = ____ctags.default
+local ____coc = require("pickers.coc")
+local coc = ____coc.default
 do
     local ____export = require("api")
     for ____exportKey, ____exportValue in pairs(____export) do
@@ -3722,9 +3838,11 @@ do
     end
 end
 api.register(files)
-api.register(ctags.currentFile)
 api.register(commands.list)
 api.register(commands.run)
+api.register(ctags.currentFile)
+api.register(coc.diagnostics)
+api.register(coc.workspaceSymbols)
 return ____exports
  end,
 }

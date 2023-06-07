@@ -11,7 +11,9 @@ export function open(this: void, opts: Picker, args: any[]) {
   timer?.stop()
   selector?.close()
 
-  selector = new Selector(opts, args)
+  const startBuffer = selector?.startBuffer ?? vim.api.nvim_get_current_buf()
+
+  selector = new Selector(startBuffer, opts, args)
   selector.setInitialEntries(getEntries(opts, args))
   selector.onChange(opts.onChange ?? onChangeDefault)
   selector.onDidClose(() => {

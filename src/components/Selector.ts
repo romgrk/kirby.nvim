@@ -30,8 +30,10 @@ const COLOR = {
 const DESIRED_CELL_WIDTH = 100
 
 export class Selector extends EventEmitter<Events> {
-  args: any[]
+  startBuffer: number
   opts: Picker
+  args: any[]
+
   width: number
   height: number
   paddingX: number
@@ -55,11 +57,13 @@ export class Selector extends EventEmitter<Events> {
   entryHeight: number
   separatorColor: number
 
-  constructor(opts: Picker, args: any[]) {
+  constructor(startBuffer: number, opts: Picker, args: any[]) {
     super()
-    this.args = args
+    this.startBuffer = startBuffer
     this.opts = Object.assign({}, opts)
     this.opts.singleLine = opts.singleLine === undefined ? true : opts.singleLine
+    this.args = args
+
     opts = this.opts
 
     const cw = cellPixels.width
@@ -77,7 +81,7 @@ export class Selector extends EventEmitter<Events> {
     const paddingX = this.paddingX = 2 * cw
     const paddingY = this.paddingY = 1 * ch
 
-    this.iconWidth = opts.hasIcon ? (opts.singleLine ? 4 * cw : 3 * cw) : 0
+    this.iconWidth = opts.hasIcon ? (opts.singleLine ? 3 * cw : 3 * cw) : 0
     this.textPaddingX = this.paddingX + this.iconWidth
 
     this.renderer = new Renderer({ col, row, width, height })
@@ -269,13 +273,17 @@ export class Selector extends EventEmitter<Events> {
       if (hasIcon) {
         if (entry.icon) {
           const style = this.labelStyle.clone()
-          if (entry.iconColor)
-            style.fill = parseInt(entry.iconColor.slice(1), 16)
-          if (!singleLine)
+          if (entry.iconColor) {
+            style.fill = typeof entry.iconColor === 'string' ?
+              parseInt(entry.iconColor.slice(1), 16) :
+              entry.iconColor
+          }
+          if (!singleLine) {
             style.fontSize = settings.DEFAULT_FONT_SIZE * 1.2
+          }
           const textIcon = line.addChild(new Text(entry.icon, style))
           textIcon.x = singleLine ? currentX : 1.5 * cw
-          textIcon.y = singleLine ? 0 : 0.8 * ch
+          textIcon.y = singleLine ? 0.5 * ch : 0.8 * ch
         }
         currentX += this.iconWidth
       }

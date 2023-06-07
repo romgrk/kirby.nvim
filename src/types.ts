@@ -3,7 +3,7 @@ import type { Selector } from './components/Selector'
 export type Entry = {
   data?: any,
   icon?: string,
-  iconColor?: string,
+  iconColor?: string | number,
   label: string,
   text: string,
   value: string,
