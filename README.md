@@ -16,6 +16,7 @@ dependencies that you need to ensure.
 { "romgrk/kirby.nvim", dependencies = {
     { "romgrk/fzy-lua-native", build = "make install" },
     { "romgrk/kui.nvim" },
+    { "nvim-tree/nvim-web-devicons" },
   },
 },
 ```
