@@ -155,10 +155,10 @@ export class Selector extends EventEmitter<Events> {
     this.activeIndex = -1
     this.entryHeight = this.opts.singleLine ? 2 * ch : 3 * ch
 
-    renderer.render(stage)
-
     this.onAccept(opts.onAccept)
     this.onChange(opts.onChange ?? onChangeFZY)
+
+    this.render()
   }
 
   onChange(fn: ChangeFn) {

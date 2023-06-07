@@ -2807,9 +2807,9 @@ function Selector.prototype.____constructor(self, opts)
     self.maxEntries = math.floor(containerHeight / ch)
     self.activeIndex = -1
     self.entryHeight = self.opts.singleLine and 2 * ch or 3 * ch
-    renderer:render(stage)
     self:onAccept(opts.onAccept)
     self:onChange(opts.onChange or onChangeFZY)
+    self:render()
 end
 function Selector.prototype.onChange(self, fn)
     local ____self = self
@@ -3343,7 +3343,7 @@ end
 ____exports.default = posix
 return ____exports
  end,
-["pickers.file"] = function(...) 
+["pickers.files"] = function(...) 
 local ____lualib = require("lualib_bundle")
 local __TS__StringTrim = ____lualib.__TS__StringTrim
 local __TS__StringSplit = ____lualib.__TS__StringSplit
@@ -3356,7 +3356,7 @@ local ____icons = require("icons")
 local getIcon = ____icons.getIcon
 local fileCommand = vim.fn.executable("fd") ~= 0 and "fd -t f" or "git ls-files"
 ____exports.default = {
-    id = "file",
+    id = "files",
     prefix = "Open ",
     prefixColor = "comment",
     hasIcon = true,
@@ -3471,41 +3471,111 @@ local currentFile = {
 ____exports.default = {currentFile = currentFile}
 return ____exports
  end,
+["pickers.commands"] = function(...) 
+local ____lualib = require("lualib_bundle")
+local __TS__ObjectValues = ____lualib.__TS__ObjectValues
+local __TS__ArrayMap = ____lualib.__TS__ArrayMap
+local ____exports = {}
+local commands = nil
+local entries = nil
+____exports.default = {
+    id = "commands",
+    prefix = "> ",
+    prefixColor = "keyword",
+    hasIcon = false,
+    singleLine = true,
+    entries = function(args)
+        if not commands or not entries then
+            commands = __TS__ObjectValues(vim.api.nvim_get_commands({}))
+            entries = __TS__ArrayMap(
+                commands,
+                function(____, command)
+                    local ____command_0 = command
+                    local name = ____command_0.name
+                    local definition = ____command_0.definition
+                    return {
+                        label = name,
+                        details = definition,
+                        text = name,
+                        value = name,
+                        data = command
+                    }
+                end
+            )
+            table.sort(
+                entries,
+                function(a, b) return a.text < b.text end
+            )
+        end
+        return entries
+    end,
+    onAccept = function(____, entry)
+        local command = entry.data
+        if command.nargs == "0" then
+            vim.cmd(command.name)
+        else
+            vim.fn.feedkeys((":" .. command.name) .. " ", "n")
+        end
+    end
+}
+return ____exports
+ end,
 ["index"] = function(...) 
 local ____lualib = require("lualib_bundle")
 local __TS__New = ____lualib.__TS__New
 local __TS__ObjectKeys = ____lualib.__TS__ObjectKeys
 local ____exports = {}
+local ____kui = require("kui")
+local Timer = ____kui.Timer
 local ____Selector = require("components.Selector")
 local Selector = ____Selector.Selector
 local ____pick = require("pick")
 local getEntries = ____pick.getEntries
 local onChangeFZY = ____pick.onChangeFZY
-local ____file = require("pickers.file")
-local file = ____file.default
+local ____files = require("pickers.files")
+local files = ____files.default
 local ____ctags = require("pickers.ctags")
 local ctags = ____ctags.default
+local ____commands = require("pickers.commands")
+local commands = ____commands.default
 ____exports.selector = nil
+____exports.timer = nil
 ____exports.pickers = {}
 function ____exports.open(opts, ...)
     local args = {...}
-    local ____opt_0 = ____exports.selector
+    local ____opt_0 = ____exports.timer
     if ____opt_0 ~= nil then
+        ____exports.timer:stop()
+    end
+    local ____opt_2 = ____exports.selector
+    if ____opt_2 ~= nil then
         ____exports.selector:close()
     end
     ____exports.selector = __TS__New(Selector, opts)
-    ____exports.selector:setInitialEntries(getEntries(opts, args))
-    ____exports.selector:onChange(onChangeFZY)
     ____exports.selector:onDidClose(function()
         ____exports.selector = nil
     end)
+    ____exports.timer = __TS__New(
+        Timer,
+        10,
+        function()
+            local ____opt_4 = ____exports.selector
+            if ____opt_4 ~= nil then
+                ____exports.selector:setInitialEntries(getEntries(opts, args))
+            end
+            local ____opt_6 = ____exports.selector
+            if ____opt_6 ~= nil then
+                ____exports.selector:onChange(onChangeFZY)
+            end
+        end
+    )
 end
 function ____exports.listPickers(self)
     return __TS__ObjectKeys(____exports.pickers)
 end
 function ____exports.close(self)
-    local ____opt_2 = ____exports.selector
-    if ____opt_2 ~= nil then
+    local ____opt_8 = ____exports.selector
+    if ____opt_8 ~= nil then
         ____exports.selector:close()
     end
     ____exports.selector = nil
@@ -3521,13 +3591,14 @@ function ____exports.openPickerByID(id, ...)
         print("Could not find picker " .. id)
     end
 end
-____exports.register(file)
+____exports.register(files)
 ____exports.register(ctags.currentFile)
+____exports.register(commands)
 function ____exports.openFilePicker(directory)
     if directory == nil then
         directory = "."
     end
-    ____exports.openPickerByID("file", directory)
+    ____exports.openPickerByID("files", directory)
 end
 return ____exports
  end,

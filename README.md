@@ -1,9 +1,16 @@
 # kirby.nvim
 
+##### Content
+ - [Installation](#installation)
+ - [Usage](#usage)
+ - [Adding pickers](#adding-pickers)
+
 Fuzzy picker based on [kui.nvim](https://github.com/romgrk/kui.nvim).
 
 ![multiline](./assets/picker-multiline.png)
 ![singleline](./assets/picker-singleline.png)
+
+## Installation
 
 This plugin depends on the ones listed below. If you're using lazy.nvim, you can use the config below.
 It also has the following hard dependencies that you need to ensure.
@@ -29,7 +36,7 @@ Use the `:Kirby [picker-id]` command to open a picker.
 
 ### Default pickers
 
-#### `Kirby file [directory]`
+#### `Kirby files [directory]`
 
 Select files in the (current) directory. Uses `fd` if available, otherwise `git ls-files`.
 
@@ -38,6 +45,12 @@ Select files in the (current) directory. Uses `fd` if available, otherwise `git 
 Select ctags for the current file. Requires `universal-ctags`.
 
 ![ctags](./assets/picker-ctags.png)
+
+#### `Kirby commands`
+
+Select a vim command.
+
+![ctags](./assets/picker-commands.png)
 
 ## Adding pickers
 

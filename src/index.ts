@@ -1,20 +1,27 @@
+import { Timer } from 'kui'
 import { Picker } from './types'
 import { Selector } from './components/Selector'
 import { getEntries, onChangeFZY } from './pick'
-import file from './pickers/file'
+import files from './pickers/files'
 import ctags from './pickers/ctags'
+import commands from './pickers/commands'
 
 export let selector: Selector | null = null
+export let timer: Timer | null = null
 export const pickers = {} as Record<string, Picker>
 
 export function open(this: void, opts: Picker, ...args: any[]) {
+  timer?.stop()
   selector?.close()
-  selector = new Selector(opts)
 
-  selector.setInitialEntries(getEntries(opts, args))
-  selector.onChange(onChangeFZY)
+  selector = new Selector(opts)
   selector.onDidClose(() => {
     selector = null
+  })
+
+  timer = new Timer(10, () => {
+    selector?.setInitialEntries(getEntries(opts, args))
+    selector?.onChange(onChangeFZY)
   })
 }
 
@@ -38,9 +45,10 @@ export function openPickerByID(this: void, id: string, ...args: any[]) {
     print(`Could not find picker ${id}`)
 }
 
-register(file)
+register(files)
 register(ctags.currentFile)
+register(commands)
 
 export function openFilePicker(this: void, directory: string = '.') {
-  openPickerByID('file', directory)
+  openPickerByID('files', directory)
 }

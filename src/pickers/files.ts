@@ -7,7 +7,7 @@ const fileCommand =
     'git ls-files'
 
 export default {
-  id: 'file',
+  id: 'files',
   prefix: 'Open ',
   prefixColor: 'comment',
   hasIcon: true,
