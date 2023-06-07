@@ -7,6 +7,11 @@ export type Picker =
   ) &
   {
     name?: string,
+    prefix?: string,
+    prefixColor?: string | number,
+    hasIcon?: boolean,
+    singleLine?: boolean,
+    width?: number,
     onAccept: AcceptFn | string,
   }
 

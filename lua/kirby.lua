@@ -2899,14 +2899,12 @@ return ____exports
 local ____lualib = require("lualib_bundle")
 local __TS__Class = ____lualib.__TS__Class
 local __TS__ClassExtends = ____lualib.__TS__ClassExtends
+local __TS__ObjectAssign = ____lualib.__TS__ObjectAssign
 local __TS__New = ____lualib.__TS__New
 local __TS__ParseInt = ____lualib.__TS__ParseInt
-local __TS__ArrayFindIndex = ____lualib.__TS__ArrayFindIndex
-local __TS__StringSlice = ____lualib.__TS__StringSlice
-local __TS__StringAccess = ____lualib.__TS__StringAccess
 local __TS__ArrayMap = ____lualib.__TS__ArrayMap
 local ____exports = {}
-local getLabelHighlightStyles, getDetailsHighlightStyles, getWindowDimensions, labelHlStyle, detailsHlStyle
+local getWindowDimensions, clamp
 local ____kui = require("kui")
 local settings = ____kui.settings
 local editor = ____kui.editor
@@ -2919,45 +2917,23 @@ local TextStyle = ____kui.TextStyle
 local Input = ____kui.Input
 local ____constants = require("constants")
 local HIGHLIGHT_COLORS = ____constants.HIGHLIGHT_COLORS
-function getLabelHighlightStyles(self, baseStyle)
-    if labelHlStyle then
-        return labelHlStyle
-    end
-    labelHlStyle = __TS__ArrayMap(
-        HIGHLIGHT_COLORS,
-        function(____, color)
-            local style = baseStyle:clone()
-            style.fill = color
-            return style
-        end
-    )
-    return labelHlStyle
-end
-function getDetailsHighlightStyles(self, baseStyle)
-    if detailsHlStyle then
-        return detailsHlStyle
-    end
-    detailsHlStyle = __TS__ArrayMap(
-        HIGHLIGHT_COLORS,
-        function(____, color)
-            local style = baseStyle:clone()
-            style.fill = color
-            style.fontWeight = "bold"
-            return style
-        end
-    )
-    return detailsHlStyle
-end
 function getWindowDimensions(self)
     local row, col = unpack(vim.fn.win_screenpos(0))
     local width = vim.fn.winwidth(0)
     local height = vim.fn.winheight(0)
     return {row = row, col = col, width = width, height = height}
 end
+function clamp(self, min, max, value)
+    return math.max(
+        min,
+        math.min(max, value)
+    )
+end
 local cellPixels = settings.DIMENSIONS.cell_pixels
 local screenCells = settings.DIMENSIONS.screen_cells
 local setKeymap = vim.api.nvim_buf_set_keymap
 local COLOR = {FOCUS = 1919121}
+local DESIRED_CELL_WIDTH = 100
 ____exports.Selector = __TS__Class()
 local Selector = ____exports.Selector
 Selector.name = "Selector"
@@ -2995,38 +2971,49 @@ function Selector.prototype.____constructor(self, opts)
         )
         vim.cmd("startinsert")
     end
+    self.opts = __TS__ObjectAssign({}, opts)
+    self.opts.prefix = opts.prefix or ""
+    local ____self_opts_1 = self.opts
+    local ____temp_0
+    if opts.singleLine == nil then
+        ____temp_0 = true
+    else
+        ____temp_0 = opts.singleLine
+    end
+    ____self_opts_1.singleLine = ____temp_0
+    opts = self.opts
     local cw = cellPixels.width
     local ch = cellPixels.height
     local window = getWindowDimensions(nil)
-    local offsetHorizontal = 5
+    local marginHorizontal = 5
     local row = window.row + 2
-    local col = window.col + offsetHorizontal
+    local col = window.col + marginHorizontal
     local availableWidth = window.width
-    local ____temp_0 = math.max(
-        10,
-        math.min(availableWidth - offsetHorizontal * 2, 120)
-    ) * cw
-    self.width = ____temp_0
-    local width = ____temp_0
-    local ____temp_1 = 20 * ch
-    self.height = ____temp_1
-    local height = ____temp_1
-    local ____temp_2 = 2 * cw
-    self.paddingX = ____temp_2
-    local paddingX = ____temp_2
-    local ____temp_3 = 1 * ch
-    self.paddingY = ____temp_3
-    local paddingY = ____temp_3
-    local ____TS__New_result_4 = __TS__New(Renderer, {col = col, row = row, width = width, height = height})
-    self.renderer = ____TS__New_result_4
-    local renderer = ____TS__New_result_4
-    local ____TS__New_result_5 = __TS__New(Container)
-    self.stage = ____TS__New_result_5
-    local stage = ____TS__New_result_5
+    local desiredCellWidth = opts.width or DESIRED_CELL_WIDTH
+    local ____temp_2 = clamp(nil, 10, availableWidth - marginHorizontal * 2, desiredCellWidth) * cw
+    self.width = ____temp_2
+    local width = ____temp_2
+    local ____temp_3 = 20 * ch
+    self.height = ____temp_3
+    local height = ____temp_3
+    local ____temp_4 = 2 * cw
+    self.paddingX = ____temp_4
+    local paddingX = ____temp_4
+    local ____temp_5 = 1 * ch
+    self.paddingY = ____temp_5
+    local paddingY = ____temp_5
+    local ____TS__New_result_6 = __TS__New(Renderer, {col = col, row = row, width = width, height = height})
+    self.renderer = ____TS__New_result_6
+    local renderer = ____TS__New_result_6
+    local ____TS__New_result_7 = __TS__New(Container)
+    self.stage = ____TS__New_result_7
+    local stage = ____TS__New_result_7
     local hlFloat = editor:getHighlight("NormalFloat")
     local backgroundColor = hlFloat.background or 4408131
     local foregroundColor = hlFloat.foreground or 16777215
-    local inputBorderColor = 13421772
+    local borderColor = backgroundColor + 3158064
+    local titleTextColor = 13421772
+    self.separatorColor = backgroundColor + 3158064
     local background = stage:addChild(__TS__New(Graphics))
     background.x = 0
     background.y = 0
@@ -3039,7 +3026,7 @@ function Selector.prototype.____constructor(self, opts)
         20
     )
     background:endFill()
-    background:lineStyle(2, 2302755, 1)
+    background:lineStyle(2, borderColor, 1)
     background:drawRoundedRect(
         0,
         0,
@@ -3047,17 +3034,12 @@ function Selector.prototype.____constructor(self, opts)
         height,
         20
     )
-    local ____temp_6 = stage:addChild(__TS__New(Input, {
-        padding = 5,
-        width = width - 4 * cw,
-        backgroundColor = backgroundColor - 328965,
-        borderColor = inputBorderColor,
-        borderWidth = 1,
-        borderRadius = 5
-    }))
-    self.input = ____temp_6
-    local input = ____temp_6
-    input.x = paddingX
+    local prefix = opts.prefix
+    local inputX = paddingX + #prefix * cw
+    local ____temp_8 = stage:addChild(__TS__New(Input, {width = width - 4 * cw - #prefix * cw, color = foregroundColor}))
+    self.input = ____temp_8
+    local input = ____temp_8
+    input.x = inputX
     input.y = 1 * ch
     input:onMount(self.onMountInput)
     self.focus = nil
@@ -3065,24 +3047,36 @@ function Selector.prototype.____constructor(self, opts)
         local name = __TS__New(
             Text,
             opts.name,
-            __TS__New(TextStyle, {fill = inputBorderColor, fontSize = settings.DEFAULT_FONT_SIZE * 0.8})
+            __TS__New(TextStyle, {fill = titleTextColor, fontSize = settings.DEFAULT_FONT_SIZE * 0.8})
         )
-        name.x = paddingX
+        name.x = inputX
         name.y = 0
         stage:addChild(name)
     end
+    if opts.prefix ~= nil then
+        local color = opts.prefixColor == nil and titleTextColor or (type(opts.prefixColor) == "number" and opts.prefixColor or (editor:getHighlight(opts.prefixColor).foreground or 16777215))
+        local prefix = __TS__New(
+            Text,
+            opts.prefix,
+            __TS__New(TextStyle, {fill = color})
+        )
+        prefix.x = paddingX
+        prefix.y = 1 * ch
+        stage:addChild(prefix)
+    end
     local containerY = input.y + input.height + 0.5 * ch
     local containerHeight = height - containerY - paddingY
-    local ____temp_7 = stage:addChild(__TS__New(Graphics))
-    self.container = ____temp_7
-    local container = ____temp_7
-    container.x = paddingX
+    local ____temp_9 = stage:addChild(__TS__New(Graphics))
+    self.container = ____temp_9
+    local container = ____temp_9
+    container.x = 0
     container.y = input.y + input.height + 0.5 * ch
     self.labelStyle = __TS__New(TextStyle, {fill = foregroundColor})
-    self.detailsStyle = __TS__New(TextStyle, {fill = foregroundColor - 1381653, fontSize = TextStyle.defaultStyle.fontSize * 0.9})
+    self.detailsStyle = __TS__New(TextStyle, {fill = foregroundColor - 4210752, fontSize = TextStyle.defaultStyle.fontSize * 0.9})
     self.maxEntries = math.floor(containerHeight / ch)
     self.entries = {}
     self.activeIndex = -1
+    self.entryHeight = self.opts.singleLine and 2 * ch or 3 * ch
     renderer:render(stage)
 end
 function Selector.prototype.onChange(self, fn)
@@ -3112,7 +3106,7 @@ function Selector.prototype.select(self, direction)
     if self.activeIndex >= #self.entries then
         self.activeIndex = self.activeIndex - #self.entries
     end
-    self.focus.y = self.activeIndex * cellPixels.height
+    self.focus.y = self.activeIndex * self.entryHeight
     self:render()
 end
 function Selector.prototype.setEntries(self, entries)
@@ -3124,132 +3118,81 @@ function Selector.prototype.setEntries(self, entries)
     while #container.children > 0 do
         container:removeChildAt(0)
     end
+    local ____self_opts_10 = self.opts
+    local hasIcon = ____self_opts_10.hasIcon
+    local singleLine = ____self_opts_10.singleLine
     local function yForIndex(____, i)
-        return i * ch
+        return i * self.entryHeight
     end
     if self.activeIndex ~= -1 then
-        local ____temp_8 = container:addChild(__TS__New(Graphics))
-        self.focus = ____temp_8
-        local focus = ____temp_8
+        local ____temp_11 = container:addChild(__TS__New(Graphics))
+        self.focus = ____temp_11
+        local focus = ____temp_11
         focus.y = yForIndex(nil, self.activeIndex)
         local bg = focus:addChild(__TS__New(Graphics))
         bg:beginFill(COLOR.FOCUS)
-        bg:drawRoundedRect(
-            0 - 5,
-            0,
-            self.width - 2 * self.paddingX + 10,
-            ch,
-            5
-        )
-        local border = focus:addChild(__TS__New(Graphics))
-        border:lineStyle(2, COLOR.FOCUS + 2105376, 1)
-        border:drawRoundedRect(
-            0 - 5,
-            0,
-            self.width - 2 * self.paddingX + 10,
-            ch,
-            5
-        )
+        bg:drawRect(0 - 5, 0, self.width + 10, self.entryHeight)
     end
+    local iconWidth = hasIcon and (singleLine and 2 * cw or 1.5 * cw) or 0
+    local textPaddingX = self.paddingX + iconWidth
     local i = 0
     for ____, entry in ipairs(entries) do
         local line = container:addChild(__TS__New(Container))
         line.y = yForIndex(nil, i)
-        local currentX = 0
-        if entry.icon then
-            local style = self.labelStyle:clone()
-            if entry.iconColor then
-                style.fill = __TS__ParseInt(
-                    string.sub(entry.iconColor, 2),
-                    16
-                )
+        local currentX = textPaddingX
+        if hasIcon then
+            if entry.icon then
+                local style = self.labelStyle:clone()
+                if entry.iconColor then
+                    style.fill = __TS__ParseInt(
+                        string.sub(entry.iconColor, 2),
+                        16
+                    )
+                end
+                if not singleLine then
+                    style.fontSize = settings.DEFAULT_FONT_SIZE * 1.2
+                end
+                local textIcon = line:addChild(__TS__New(Text, entry.icon, style))
+                textIcon.x = singleLine and currentX or 1.5 * cw
+                textIcon.y = singleLine and 0 or 0.8 * ch
             end
-            local textIcon = line:addChild(__TS__New(Text, entry.icon, style))
-            textIcon.x = currentX
+            currentX = currentX + iconWidth
         end
-        currentX = currentX + 2 * cw
-        local positions = entry.positions
-        local disableHighlights = true
         do
             local label = entry.label
-            if not positions or disableHighlights then
-                local textEntry = line:addChild(__TS__New(Text, label, self.labelStyle))
-                textEntry.x = currentX
-                currentX = currentX + textEntry.width
-            else
-                local highlightStyles = getLabelHighlightStyles(nil, self.labelStyle)
-                local nextHighlight = 0
-                local current = 0
-                local currentPositionI = __TS__ArrayFindIndex(
-                    positions,
-                    function(____, p) return p >= (entry.labelOffset or 0) end
-                )
-                local function currentPosition()
-                    return positions[currentPositionI + 1] and positions[currentPositionI + 1] - (entry.labelOffset or 0) or nil
-                end
-                while current < #label do
-                    local currentEnd = currentPosition(nil) or #label
-                    if currentEnd > current then
-                        local slice = __TS__StringSlice(label, current, currentEnd)
-                        local textEntry = line:addChild(__TS__New(Text, slice, self.labelStyle))
-                        textEntry.x = currentX
-                        currentX = currentX + textEntry.width
-                        current = current + #slice
-                    end
-                    while currentPosition(nil) == current do
-                        local character = __TS__StringAccess(label, current)
-                        local ____nextHighlight_9 = nextHighlight
-                        nextHighlight = ____nextHighlight_9 + 1
-                        local style = highlightStyles[____nextHighlight_9 % #highlightStyles + 1]
-                        local textEntry = line:addChild(__TS__New(Text, character, style))
-                        textEntry.x = currentX
-                        currentX = currentX + textEntry.width
-                        currentPositionI = currentPositionI + 1
-                        current = current + 1
-                    end
-                end
-            end
+            local textEntry = line:addChild(__TS__New(Text, label, self.labelStyle))
+            textEntry.y = singleLine and 0.5 * ch or 0.5 * ch
+            textEntry.x = currentX
+            currentX = currentX + textEntry.width
         end
         currentX = currentX + 1 * cw
         if entry.details ~= nil then
             local details = entry.details
-            if not positions or disableHighlights then
-                local textEntry = line:addChild(__TS__New(Text, details, self.detailsStyle))
-                textEntry.x = currentX
-                currentX = currentX + textEntry.width
+            local textEntry = line:addChild(__TS__New(Text, details, self.detailsStyle))
+            if not singleLine then
+                textEntry.y = 1.5 * ch
+                textEntry.x = textPaddingX + iconWidth
             else
-                local highlightStyles = getDetailsHighlightStyles(nil, self.detailsStyle)
-                local nextHighlight = 0
-                local current = 0
-                local currentPositionI = __TS__ArrayFindIndex(
-                    positions,
-                    function(____, p) return p >= (entry.detailsOffset or 0) end
-                )
-                local function currentPosition()
-                    return positions[currentPositionI + 1] and positions[currentPositionI + 1] - (entry.detailsOffset or 0) or nil
-                end
-                while current < #details do
-                    local currentEnd = currentPosition(nil) or #details
-                    if currentEnd > current then
-                        local slice = __TS__StringSlice(details, current, currentEnd)
-                        local textEntry = line:addChild(__TS__New(Text, slice, self.detailsStyle))
-                        textEntry.x = currentX
-                        currentX = currentX + textEntry.width
-                        current = current + #slice
-                    end
-                    while currentPosition(nil) == current do
-                        local character = __TS__StringAccess(details, current)
-                        local ____nextHighlight_10 = nextHighlight
-                        nextHighlight = ____nextHighlight_10 + 1
-                        local style = highlightStyles[____nextHighlight_10 % #highlightStyles + 1]
-                        local textEntry = line:addChild(__TS__New(Text, character, style))
-                        textEntry.x = currentX
-                        currentX = currentX + textEntry.width
-                        currentPositionI = currentPositionI + 1
-                        current = current + 1
-                    end
-                end
+                textEntry.y = 0.5 * ch
+                textEntry.x = currentX
             end
+            currentX = currentX + textEntry.width
+        end
+        do
+            local separator = line:addChild(__TS__New(Graphics))
+            separator.x = 0
+            separator.y = 0
+            separator:lineStyle(2, self.separatorColor, 0.5)
+            separator:moveTo(0, 0)
+            separator:lineTo(self.width, 0)
+        end
+        if i + 1 == self.maxEntries or entry == entries[#entries] then
+            local separator = line:addChild(__TS__New(Graphics))
+            separator.x = 0
+            separator.y = self.entryHeight
+            separator:lineStyle(2, self.separatorColor, 0.5)
+            separator:moveTo(0, 0)
+            separator:lineTo(self.width, 0)
         end
         i = i + 1
         if i >= self.maxEntries then
@@ -3267,8 +3210,37 @@ function Selector.prototype.close(self)
     self.renderer:destroy()
     self:emit("didClose")
 end
-labelHlStyle = nil
-detailsHlStyle = nil
+local labelHlStyle = nil
+local function getLabelHighlightStyles(self, baseStyle)
+    if labelHlStyle then
+        return labelHlStyle
+    end
+    labelHlStyle = __TS__ArrayMap(
+        HIGHLIGHT_COLORS,
+        function(____, color)
+            local style = baseStyle:clone()
+            style.fill = color
+            return style
+        end
+    )
+    return labelHlStyle
+end
+local detailsHlStyle = nil
+local function getDetailsHighlightStyles(self, baseStyle)
+    if detailsHlStyle then
+        return detailsHlStyle
+    end
+    detailsHlStyle = __TS__ArrayMap(
+        HIGHLIGHT_COLORS,
+        function(____, color)
+            local style = baseStyle:clone()
+            style.fill = color
+            style.fontWeight = "bold"
+            return style
+        end
+    )
+    return detailsHlStyle
+end
 return ____exports
  end,
 ["types"] = function(...) 
@@ -3370,7 +3342,10 @@ end
 ____exports.register(
     "file",
     {
-        name = "Files",
+        prefix = "Open ",
+        prefixColor = "comment",
+        hasIcon = true,
+        singleLine = false,
         entries = function(args)
             local directory = unpack(args)
             if directory == nil then
@@ -3386,11 +3361,16 @@ ____exports.register(
                     local ____getIcon_result_6 = getIcon(nil, parsed.base, parsed.ext)
                     local icon = ____getIcon_result_6.icon
                     local color = ____getIcon_result_6.color
+                    local directory = __TS__StringTrim(parsed.dir)
+                    if not directory or directory == "" then
+                        directory = "."
+                    end
+                    directory = directory .. "/ "
                     return {
                         icon = icon,
                         iconColor = color,
                         label = parsed.base,
-                        details = parsed.dir,
+                        details = directory,
                         text = line,
                         value = line,
                         labelOffset = #parsed.dir > 0 and #parsed.dir + 1 or 0,

@@ -40,7 +40,10 @@ const COLOR = {
   FOCUS: 0x1D4891,
 }
 
+const DESIRED_CELL_WIDTH = 100
+
 export class Selector extends EventEmitter<Events> {
+  opts: Picker
   width: number
   height: number
   paddingX: number
@@ -55,20 +58,27 @@ export class Selector extends EventEmitter<Events> {
   maxEntries: number
   entries: Entry[]
   activeIndex: number
+  entryHeight: number
+  separatorColor: number
 
   constructor(opts: Picker) {
     super()
+    this.opts = Object.assign({}, opts)
+    this.opts.prefix = opts.prefix ?? ''
+    this.opts.singleLine = opts.singleLine === undefined ? true : opts.singleLine
+    opts = this.opts
 
     const cw = cellPixels.width
     const ch = cellPixels.height
 
     const window = getWindowDimensions()
-    const offsetHorizontal = 5
+    const marginHorizontal = 5
     const row = window.row + 2
-    const col = window.col + offsetHorizontal
+    const col = window.col + marginHorizontal
     const availableWidth = window.width
 
-    const width  = this.width = Math.max(10, Math.min(availableWidth - offsetHorizontal * 2, 120)) * cw
+    const desiredCellWidth = opts.width ?? DESIRED_CELL_WIDTH
+    const width  = this.width = clamp(10, availableWidth - marginHorizontal * 2, desiredCellWidth) * cw
     const height = this.height = 20 * ch
     const paddingX = this.paddingX = 2 * cw
     const paddingY = this.paddingY = 1 * ch
@@ -79,7 +89,9 @@ export class Selector extends EventEmitter<Events> {
     const hlFloat = editor.getHighlight('NormalFloat')
     const backgroundColor = hlFloat.background ?? 0x434343
     const foregroundColor = hlFloat.foreground ?? 0xffffff
-    const inputBorderColor = 0xcccccc
+    const borderColor = backgroundColor + 0x303030
+    const titleTextColor = 0xcccccc
+    this.separatorColor = backgroundColor + 0x303030
 
     const background = stage.addChild(new Graphics())
     background.x = 0
@@ -87,18 +99,16 @@ export class Selector extends EventEmitter<Events> {
     background.beginFill(backgroundColor)
     background.drawRoundedRect(0, 0, width, height, 20)
     background.endFill()
-    background.lineStyle(2, 0x232323, 1)
+    background.lineStyle(2, borderColor, 1)
     background.drawRoundedRect(0, 0, width, height, 20)
 
+    const prefix = opts.prefix!
+    const inputX = paddingX + prefix.length * cw
     const input = this.input = stage.addChild(new Input({
-      padding: 5,
-      width: width - 4 * cw,
-      backgroundColor: backgroundColor - 0x050505,
-      borderColor: inputBorderColor,
-      borderWidth: 1,
-      borderRadius: 5,
+      width: width - 4 * cw - prefix.length * cw,
+      color: foregroundColor,
     }))
-    input.x = paddingX
+    input.x = inputX
     input.y = 1 * ch
     input.onMount(this.onMountInput)
 
@@ -106,29 +116,47 @@ export class Selector extends EventEmitter<Events> {
 
     if (opts.name !== undefined) {
       const name = new Text(opts.name, new TextStyle({
-        fill: inputBorderColor,
+        fill: titleTextColor,
         fontSize: settings.DEFAULT_FONT_SIZE * 0.8,
       }))
-      name.x = paddingX
+      name.x = inputX
       name.y = 0
       stage.addChild(name)
     }
+    if (opts.prefix !== undefined) {
+      const color =
+        opts.prefixColor === undefined ?
+          titleTextColor :
+        typeof opts.prefixColor === 'number' ?
+          opts.prefixColor :
+          editor.getHighlight(opts.prefixColor).foreground || 0xffffff
+
+      const prefix = new Text(opts.prefix, new TextStyle({
+        fill: color,
+        // fontSize: settings.DEFAULT_FONT_SIZE * 0.8,
+      }))
+      prefix.x = paddingX
+      prefix.y = 1 * ch
+      stage.addChild(prefix)
+    }
+
 
     const containerY = input.y + input.height + 0.5 * ch
     const containerHeight = height - containerY - paddingY
     const container = this.container = stage.addChild(new Graphics())
-    container.x = paddingX
+    container.x = 0
     container.y = input.y + input.height + 0.5 * ch
 
     this.labelStyle = new TextStyle({ fill: foregroundColor })
     this.detailsStyle = new TextStyle({
-      fill: foregroundColor - 0x151515,
+      fill: foregroundColor - 0x404040,
       fontSize: TextStyle.defaultStyle.fontSize as number * 0.9,
     })
 
     this.maxEntries = Math.floor(containerHeight / ch)
     this.entries = []
     this.activeIndex = -1
+    this.entryHeight = this.opts.singleLine ? 2 * ch : 3 * ch
 
     renderer.render(stage)
   }
@@ -162,7 +190,7 @@ export class Selector extends EventEmitter<Events> {
     if (this.activeIndex >= this.entries.length)
       this.activeIndex -= this.entries.length
 
-    this.focus.y = this.activeIndex * cellPixels.height
+    this.focus.y = this.activeIndex * this.entryHeight
     this.render()
   }
 
@@ -186,116 +214,116 @@ export class Selector extends EventEmitter<Events> {
       container.removeChildAt(0)
     }
 
-    const yForIndex = (i: number) => i * ch
+    const { hasIcon, singleLine } = this.opts
+    const yForIndex = (i: number) => i * this.entryHeight
 
     if (this.activeIndex !== -1) {
       const focus = this.focus = container.addChild(new Graphics())
       focus.y = yForIndex(this.activeIndex)
       const bg = focus.addChild(new Graphics())
       bg.beginFill(COLOR.FOCUS)
-      bg.drawRoundedRect(0 - 5, 0, this.width - 2 * this.paddingX + 10, ch, 5)
-      const border = focus.addChild(new Graphics())
-      border.lineStyle(2, COLOR.FOCUS + 0x202020, 1)
-      border.drawRoundedRect(0 - 5, 0, this.width - 2 * this.paddingX + 10, ch, 5)
+      bg.drawRect(0 - 5, 0, this.width + 10, this.entryHeight)
     }
+
+    const iconWidth = hasIcon ? (singleLine ? 2 * cw : 1.5 * cw) : 0
+    const textPaddingX = this.paddingX + iconWidth
 
     let i = 0
     for (const entry of entries) {
       const line = container.addChild(new Container())
       line.y = yForIndex(i)
 
-      let currentX = 0
-      if (entry.icon) {
-        const style = this.labelStyle.clone()
-        if (entry.iconColor)
-          style.fill = parseInt(entry.iconColor.slice(1), 16)
-        const textIcon = line.addChild(new Text(entry.icon, style))
-        textIcon.x = currentX
-      }
-      currentX += 2 * cw
+      let currentX = textPaddingX
 
-      const positions = entry.positions
-      const disableHighlights = true // Text layout going wrong
+      if (hasIcon) {
+        if (entry.icon) {
+          const style = this.labelStyle.clone()
+          if (entry.iconColor)
+            style.fill = parseInt(entry.iconColor.slice(1), 16)
+          if (!singleLine)
+            style.fontSize = settings.DEFAULT_FONT_SIZE * 1.2
+          const textIcon = line.addChild(new Text(entry.icon, style))
+          textIcon.x = singleLine ? currentX : 1.5 * cw
+          textIcon.y = singleLine ? 0 : 0.8 * ch
+        }
+        currentX += iconWidth
+      }
+
+      // const positions = entry.positions
+      // const disableHighlights = true // Text layout going wrong
 
       {
         const label = entry.label
-        if (!positions || disableHighlights) {
-          const textEntry = line.addChild(new Text(label, this.labelStyle))
-          textEntry.x = currentX
-          currentX += textEntry.width
-        } else {
-          const highlightStyles = getLabelHighlightStyles(this.labelStyle)
-          let nextHighlight = 0
+        const textEntry = line.addChild(new Text(label, this.labelStyle))
+        textEntry.y = singleLine ? 0.5 * ch : 0.5 * ch
+        textEntry.x = currentX
+        currentX += textEntry.width
 
-          let current = 0
-          let currentPositionI = positions.findIndex(p => p >= (entry.labelOffset ?? 0))
-          const currentPosition = () => positions[currentPositionI] ?
-            positions[currentPositionI] - (entry.labelOffset ?? 0) : undefined
-          while (current < label.length) {
-            const currentEnd = currentPosition() ?? label.length
-
-            if (currentEnd > current) {
-              const slice = label.slice(current, currentEnd)
-
-              const textEntry = line.addChild(new Text(slice, this.labelStyle))
-              textEntry.x = currentX
-              currentX += textEntry.width
-              current += slice.length
-            }
-
-            while (currentPosition() === current) {
-              const character = label[current]
-              const style = highlightStyles[nextHighlight++ % highlightStyles.length]
-              const textEntry = line.addChild(new Text(character, style))
-              textEntry.x = currentX
-              currentX += textEntry.width
-
-              currentPositionI++
-              current++
-            }
-          }
-        }
+        // if (hasHighlight) {
+        //   const highlightStyles = getLabelHighlightStyles(this.labelStyle)
+        //   let nextHighlight = 0
+        //
+        //   let current = 0
+        //   let currentPositionI = positions.findIndex(p => p >= (entry.labelOffset ?? 0))
+        //   const currentPosition = () => positions[currentPositionI] ?
+        //     positions[currentPositionI] - (entry.labelOffset ?? 0) : undefined
+        //   while (current < label.length) {
+        //     const currentEnd = currentPosition() ?? label.length
+        //
+        //     if (currentEnd > current) {
+        //       const slice = label.slice(current, currentEnd)
+        //
+        //       const textEntry = line.addChild(new Text(slice, this.labelStyle))
+        //       textEntry.x = currentX
+        //       currentX += textEntry.width
+        //       current += slice.length
+        //     }
+        //
+        //     while (currentPosition() === current) {
+        //       const character = label[current]
+        //       const style = highlightStyles[nextHighlight++ % highlightStyles.length]
+        //       const textEntry = line.addChild(new Text(character, style))
+        //       textEntry.x = currentX
+        //       currentX += textEntry.width
+        //
+        //       currentPositionI++
+        //       current++
+        //     }
+        //   }
+        // }
       }
       currentX += 1 * cw
 
       if (entry.details !== undefined) {
         const details = entry.details
-        if (!positions || disableHighlights) {
-          const textEntry = line.addChild(new Text(details, this.detailsStyle))
-          textEntry.x = currentX
-          currentX += textEntry.width
+        const textEntry = line.addChild(new Text(details, this.detailsStyle))
+        if (!singleLine) {
+          textEntry.y = 1.5 * ch
+          textEntry.x = textPaddingX + iconWidth
         } else {
-          const highlightStyles = getDetailsHighlightStyles(this.detailsStyle)
-          let nextHighlight = 0
-
-          let current = 0
-          let currentPositionI = positions.findIndex(p => p >= (entry.detailsOffset ?? 0))
-          const currentPosition = () => positions[currentPositionI] ?
-            positions[currentPositionI] - (entry.detailsOffset ?? 0) : undefined
-          while (current < details.length) {
-            const currentEnd = currentPosition() ?? details.length
-
-            if (currentEnd > current) {
-              const slice = details.slice(current, currentEnd)
-
-              const textEntry = line.addChild(new Text(slice, this.detailsStyle))
-              textEntry.x = currentX
-              currentX += textEntry.width
-              current += slice.length
-            }
-
-            while (currentPosition() === current) {
-              const character = details[current]
-              const style = highlightStyles[nextHighlight++ % highlightStyles.length]
-              const textEntry = line.addChild(new Text(character, style))
-              textEntry.x = currentX
-              currentX += textEntry.width
-
-              currentPositionI++
-              current++
-            }
-          }
+          textEntry.y = 0.5 * ch
+          textEntry.x = currentX
         }
+        currentX += textEntry.width
+      }
+
+      {
+        const separator = line.addChild(new Graphics())
+        separator.x = 0
+        separator.y = 0
+        separator.lineStyle(2, this.separatorColor, 0.5)
+        separator.moveTo(0, 0)
+        separator.lineTo(this.width, 0)
+        // separator.drawRect(0, 0, this.width, 1)
+      }
+      if (i + 1 === this.maxEntries || entry === entries[entries.length - 1]){
+        const separator = line.addChild(new Graphics())
+        separator.x = 0
+        separator.y = this.entryHeight
+        separator.lineStyle(2, this.separatorColor, 0.5)
+        separator.moveTo(0, 0)
+        separator.lineTo(this.width, 0)
+        // separator.drawRect(0, 0, this.width, 1)
       }
 
       i++
@@ -349,4 +377,8 @@ function getWindowDimensions() {
   const width = vim.fn.winwidth(0)
   const height = vim.fn.winheight(0)
   return { row, col, width, height }
+}
+
+function clamp(min: number, max: number, value: number) {
+  return Math.max(min, Math.min(max, value))
 }

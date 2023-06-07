@@ -2,7 +2,8 @@
 
 Fuzzy picker based on [kui.nvim](https://github.com/romgrk/kui.nvim).
 
-![demo](./assets/demo.png)
+![multiline](./assets/picker-multiline.png)
+![singleline](./assets/picker-singleline.png)
 
 This plugin depends on the ones listed below. If you're using lazy.nvim, the config would 
 probably look something like the one below. I'm guessing. It also has the following hard
