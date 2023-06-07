@@ -54,6 +54,8 @@ Select a vim command.
 
 ## Adding pickers
 
+**NOTE**: Expect breaking changes from time to time, this is still evolving.
+
 A few examples from my own config:
 
 ```lua
