@@ -187,6 +187,17 @@ export class Selector extends EventEmitter<Events> {
     this.on('accept', fn)
   }
 
+  render() {
+    this.renderer.render(this.stage)
+  }
+
+  close() {
+    this.input?.destroy()
+    this.stage?.destroy()
+    this.renderer?.destroy()
+    this.emit('didClose')
+  }
+
   accept() {
     this.close()
     const entry = this.entries[this.activeIndex]
@@ -377,17 +388,6 @@ export class Selector extends EventEmitter<Events> {
     }
 
     this.render()
-  }
-
-  render() {
-    this.renderer.render(this.stage)
-  }
-
-  close() {
-    this.input?.destroy()
-    this.stage?.destroy()
-    this.renderer?.destroy()
-    this.emit('didClose')
   }
 }
 

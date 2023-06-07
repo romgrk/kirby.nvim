@@ -2827,6 +2827,24 @@ function Selector.prototype.onAccept(self, callback)
     end)
     self:on("accept", fn)
 end
+function Selector.prototype.render(self)
+    self.renderer:render(self.stage)
+end
+function Selector.prototype.close(self)
+    local ____opt_9 = self.input
+    if ____opt_9 ~= nil then
+        ____opt_9:destroy()
+    end
+    local ____opt_11 = self.stage
+    if ____opt_11 ~= nil then
+        ____opt_11:destroy()
+    end
+    local ____opt_13 = self.renderer
+    if ____opt_13 ~= nil then
+        ____opt_13:destroy()
+    end
+    self:emit("didClose")
+end
 function Selector.prototype.accept(self)
     self:close()
     local entry = self.entries[self.activeIndex + 1]
@@ -2880,18 +2898,18 @@ function Selector.prototype.setEntries(self, entries)
         self:render()
         return
     end
-    local ____self_opts_9 = self.opts
-    local hasIcon = ____self_opts_9.hasIcon
-    local singleLine = ____self_opts_9.singleLine
-    local detailsAlign = ____self_opts_9.detailsAlign
+    local ____self_opts_15 = self.opts
+    local hasIcon = ____self_opts_15.hasIcon
+    local singleLine = ____self_opts_15.singleLine
+    local detailsAlign = ____self_opts_15.detailsAlign
     local alignDetailsRight = detailsAlign == "right"
     local function yForIndex(____, i)
         return i * self.entryHeight
     end
     if not isEmpty then
-        local ____temp_10 = container:addChild(__TS__New(Graphics))
-        self.focus = ____temp_10
-        local focus = ____temp_10
+        local ____temp_16 = container:addChild(__TS__New(Graphics))
+        self.focus = ____temp_16
+        local focus = ____temp_16
         focus.y = yForIndex(nil, self.activeIndex)
         local bg = focus:addChild(__TS__New(Graphics))
         bg:beginFill(COLOR.FOCUS)
@@ -2968,24 +2986,6 @@ function Selector.prototype.setEntries(self, entries)
         end
     end
     self:render()
-end
-function Selector.prototype.render(self)
-    self.renderer:render(self.stage)
-end
-function Selector.prototype.close(self)
-    local ____opt_11 = self.input
-    if ____opt_11 ~= nil then
-        ____opt_11:destroy()
-    end
-    local ____opt_13 = self.stage
-    if ____opt_13 ~= nil then
-        ____opt_13:destroy()
-    end
-    local ____opt_15 = self.renderer
-    if ____opt_15 ~= nil then
-        ____opt_15:destroy()
-    end
-    self:emit("didClose")
 end
 local labelHlStyle = nil
 local function getLabelHighlightStyles(self, baseStyle)
