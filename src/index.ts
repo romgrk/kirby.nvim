@@ -1,8 +1,9 @@
 import * as fzy from 'fzy-lua-native'
 import path from './path'
 import { getIcon } from './icons'
-import { Entry, Picker } from './types'
+import { Picker } from './types'
 import { Selector } from './components/Selector'
+import { getEntries, onChangeFZY } from './pick'
 
 export let selector: Selector | null = null
 export const pickers = {} as Record<string, Picker>
@@ -13,44 +14,11 @@ const fileCommand =
     'git ls-files'
 
 export function open(this: void, opts: Picker, ...args: any[]) {
-  let entries: Entry[]
-
-  if ('values' in opts) {
-    const valuesOpt = opts.values
-    const values = typeof valuesOpt === 'function' ? valuesOpt(...args) : valuesOpt
-    entries = values.map(v => ({ label: v, text: v, value: v }))
-  } else {
-    const entriesOpt = opts.entries 
-    entries = typeof entriesOpt === 'function' ? entriesOpt(...args) : entriesOpt
-  }
-
-  const onAccept =
-    typeof opts.onAccept === 'function' ?
-      opts.onAccept :
-      (entry: Entry) => {
-        vim.cmd(`${opts.onAccept} ${entry.text}`)
-      }
-
   selector?.close()
   selector = new Selector(opts)
-  selector.setEntries(entries)
-  selector.onChange(input => {
-    const sensitive = input !== input.toLowerCase()
-    const filtered = entries.filter((e, i) => {
-      const hasMatch = fzy.has_match(input, e.text, sensitive)
-      if (hasMatch) {
-        e.score = fzy.score(input, e.text, sensitive)
-        e.positions = fzy.positions(input, e.text, sensitive)
-        e.positions.forEach((_, i) => {
-          e.positions![i] -= 1
-        })
-      }
-      return hasMatch
-    })
-    filtered.sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
-    selector!.setEntries(filtered)
-  })
-  selector.onAccept(onAccept)
+
+  selector.setInitialEntries(getEntries(opts, args))
+  selector.onChange(onChangeFZY)
   selector.onDidClose(() => {
     selector = null
   })

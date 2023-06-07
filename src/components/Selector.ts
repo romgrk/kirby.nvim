@@ -9,8 +9,9 @@ import {
   TextStyle,
   Input,
 } from 'kui'
-import { Entry, Picker } from '../types'
+import type { ChangeFn, Entry, Picker } from '../types'
 import { HIGHLIGHT_COLORS } from '../constants'
+import { onChangeFZY } from '../pick'
 
 const cellPixels = settings.DIMENSIONS.cell_pixels
 const screenCells = settings.DIMENSIONS.screen_cells
@@ -34,6 +35,9 @@ export class Selector extends EventEmitter<Events> {
   height: number
   paddingX: number
   paddingY: number
+  textPaddingX: number
+  iconWidth: number
+
   renderer: Renderer
   stage: Container
   input: Input
@@ -41,8 +45,11 @@ export class Selector extends EventEmitter<Events> {
   container: Container
   labelStyle: TextStyle
   detailsStyle: TextStyle
-  maxEntries: number
+
+  didInit: boolean
+  initialEntries: Entry[]
   entries: Entry[]
+  maxEntries: number
   activeIndex: number
   entryHeight: number
   separatorColor: number
@@ -68,6 +75,9 @@ export class Selector extends EventEmitter<Events> {
     const height = this.height = 20 * ch
     const paddingX = this.paddingX = 2 * cw
     const paddingY = this.paddingY = 1 * ch
+
+    this.iconWidth = opts.hasIcon ? (opts.singleLine ? 4 * cw : 3 * cw) : 0
+    this.textPaddingX = this.paddingX + this.iconWidth
 
     const renderer = this.renderer = new Renderer({ col, row, width, height })
     const stage = this.stage = new Container()
@@ -139,23 +149,35 @@ export class Selector extends EventEmitter<Events> {
       fontSize: TextStyle.defaultStyle.fontSize as number * 0.9,
     })
 
-    this.maxEntries = Math.floor(containerHeight / ch)
+    this.didInit = false
+    this.initialEntries = []
     this.entries = []
+    this.maxEntries = Math.floor(containerHeight / ch)
     this.activeIndex = -1
     this.entryHeight = this.opts.singleLine ? 2 * ch : 3 * ch
 
     renderer.render(stage)
+
+    this.onAccept(opts.onAccept)
+    this.onChange(opts.onChange ?? onChangeFZY)
   }
 
-  onChange(fn: (value: string) => void) {
-    this.input.onChange(fn)
+  onChange(fn: ChangeFn) {
+    this.input.onChange(input => {
+      fn(this, input)
+    })
   }
 
   onDidClose(fn: Function) {
     this.on('didClose', fn as any)
   }
 
-  onAccept(fn: (entry: Entry) => void) {
+  onAccept(callback: string | ((entry: Entry) => void)) {
+    const fn =
+      typeof callback === 'function' ?
+        callback :
+        (entry: Entry) => { vim.cmd(`${callback} ${entry.text}`) }
+
     this.on('accept', fn)
   }
 
@@ -188,9 +210,26 @@ export class Selector extends EventEmitter<Events> {
     vim.cmd('startinsert')
   }
 
+  setInitialEntries(entries: Entry[]) {
+    this.didInit = true
+    this.initialEntries = entries
+    this.setEntries(this.initialEntries)
+  }
+
+  drawMessage(message: string) {
+    const style = new TextStyle({
+      fill: editor.getHighlight('comment').foreground ?? 0xffffff,
+      fontSize: settings.DEFAULT_FONT_SIZE,
+    })
+    const textEntry = this.container.addChild(new Text(message, style))
+    textEntry.y = 0.5 * cellPixels.height
+    textEntry.x = this.textPaddingX
+  }
+
   setEntries(entries: Entry[]) {
+    const isEmpty = entries.length === 0
     this.entries = entries
-    this.activeIndex = entries.length > 0 ? 0 : -1
+    this.activeIndex = !isEmpty ? 0 : -1
 
     const cw = cellPixels.width
     const ch = cellPixels.height
@@ -200,10 +239,16 @@ export class Selector extends EventEmitter<Events> {
       container.removeChildAt(0)
     }
 
+    if (isEmpty) {
+      this.drawMessage(this.didInit ? 'No results' : 'Loading entries...')
+      this.render()
+      return
+    }
+
     const { hasIcon, singleLine } = this.opts
     const yForIndex = (i: number) => i * this.entryHeight
 
-    if (this.activeIndex !== -1) {
+    if (!isEmpty) {
       const focus = this.focus = container.addChild(new Graphics())
       focus.y = yForIndex(this.activeIndex)
       const bg = focus.addChild(new Graphics())
@@ -211,15 +256,12 @@ export class Selector extends EventEmitter<Events> {
       bg.drawRect(0 - 5, 0, this.width + 10, this.entryHeight)
     }
 
-    const iconWidth = hasIcon ? (singleLine ? 2 * cw : 1.5 * cw) : 0
-    const textPaddingX = this.paddingX + iconWidth
-
     let i = 0
     for (const entry of entries) {
       const line = container.addChild(new Container())
       line.y = yForIndex(i)
 
-      let currentX = textPaddingX
+      let currentX = this.paddingX
 
       if (hasIcon) {
         if (entry.icon) {
@@ -232,7 +274,7 @@ export class Selector extends EventEmitter<Events> {
           textIcon.x = singleLine ? currentX : 1.5 * cw
           textIcon.y = singleLine ? 0 : 0.8 * ch
         }
-        currentX += iconWidth
+        currentX += this.iconWidth
       }
 
       // const positions = entry.positions
@@ -285,7 +327,7 @@ export class Selector extends EventEmitter<Events> {
         const textEntry = line.addChild(new Text(details, this.detailsStyle))
         if (!singleLine) {
           textEntry.y = 1.5 * ch
-          textEntry.x = textPaddingX + iconWidth
+          textEntry.x = this.textPaddingX
         } else {
           textEntry.y = 0.5 * ch
           textEntry.x = currentX

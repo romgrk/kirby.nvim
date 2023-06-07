@@ -1,3 +1,4 @@
+import type { Selector } from './components/Selector'
 
 export type Entry = {
   icon?: string,
@@ -13,6 +14,7 @@ export type Entry = {
 }
 
 export type AcceptFn = (entry: Entry) => void
+export type ChangeFn = (selector: Selector, input: string) => void
 
 export type Picker =
   (
@@ -55,5 +57,7 @@ export type Picker =
      * If it's a function, it is called with the `entry`.
      */
     onAccept: AcceptFn | string,
+    /** The callback after user input */
+    onChange?: ChangeFn,
   }
 

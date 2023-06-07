@@ -2895,9 +2895,55 @@ end
 ____exports.default = posix
 return ____exports
  end,
-["types"] = function(...) 
---[[ Generated with https://github.com/TypeScriptToLua/TypeScriptToLua ]]
+["pick"] = function(...) 
+local ____lualib = require("lualib_bundle")
+local __TS__ArrayMap = ____lualib.__TS__ArrayMap
+local __TS__ArrayForEach = ____lualib.__TS__ArrayForEach
+local __TS__ArrayFilter = ____lualib.__TS__ArrayFilter
+local __TS__ArraySort = ____lualib.__TS__ArraySort
 local ____exports = {}
+local fzy = require("fzy-lua-native")
+function ____exports.getEntries(self, opts, args)
+    local entries
+    if opts.values ~= nil then
+        local valuesOpt = opts.values
+        local values = type(valuesOpt) == "function" and valuesOpt(unpack(args)) or valuesOpt
+        entries = __TS__ArrayMap(
+            values,
+            function(____, v) return {label = v, text = v, value = v} end
+        )
+    else
+        local entriesOpt = opts.entries
+        entries = type(entriesOpt) == "function" and entriesOpt(unpack(args)) or entriesOpt
+    end
+    return entries
+end
+function ____exports.onChangeFZY(self, selector, input)
+    local sensitive = input ~= string.lower(input)
+    local filtered = __TS__ArrayFilter(
+        selector.initialEntries,
+        function(____, e, i)
+            local hasMatch = fzy.has_match(input, e.text, sensitive)
+            if hasMatch then
+                e.score = fzy.score(input, e.text, sensitive)
+                e.positions = fzy.positions(input, e.text, sensitive)
+                __TS__ArrayForEach(
+                    e.positions,
+                    function(____, _, i)
+                        local ____e_positions_0, ____temp_1 = e.positions, i + 1
+                        ____e_positions_0[____temp_1] = ____e_positions_0[____temp_1] - 1
+                    end
+                )
+            end
+            return hasMatch
+        end
+    )
+    __TS__ArraySort(
+        filtered,
+        function(____, a, b) return (b.score or 0) - (a.score or 0) end
+    )
+    selector:setEntries(filtered)
+end
 return ____exports
  end,
 ["components.Selector"] = function(...) 
@@ -2922,6 +2968,8 @@ local TextStyle = ____kui.TextStyle
 local Input = ____kui.Input
 local ____constants = require("constants")
 local HIGHLIGHT_COLORS = ____constants.HIGHLIGHT_COLORS
+local ____pick = require("pick")
+local onChangeFZY = ____pick.onChangeFZY
 function getWindowDimensions(self)
     local row, col = unpack(vim.fn.win_screenpos(0))
     local width = vim.fn.winwidth(0)
@@ -3007,6 +3055,8 @@ function Selector.prototype.____constructor(self, opts)
     local ____temp_5 = 1 * ch
     self.paddingY = ____temp_5
     local paddingY = ____temp_5
+    self.iconWidth = opts.hasIcon and (opts.singleLine and 4 * cw or 3 * cw) or 0
+    self.textPaddingX = self.paddingX + self.iconWidth
     local ____TS__New_result_6 = __TS__New(Renderer, {col = col, row = row, width = width, height = height})
     self.renderer = ____TS__New_result_6
     local renderer = ____TS__New_result_6
@@ -3078,19 +3128,28 @@ function Selector.prototype.____constructor(self, opts)
     container.y = input.y + input.height + 0.5 * ch
     self.labelStyle = __TS__New(TextStyle, {fill = foregroundColor})
     self.detailsStyle = __TS__New(TextStyle, {fill = foregroundColor - 4210752, fontSize = TextStyle.defaultStyle.fontSize * 0.9})
-    self.maxEntries = math.floor(containerHeight / ch)
+    self.didInit = false
+    self.initialEntries = {}
     self.entries = {}
+    self.maxEntries = math.floor(containerHeight / ch)
     self.activeIndex = -1
     self.entryHeight = self.opts.singleLine and 2 * ch or 3 * ch
     renderer:render(stage)
+    self:onAccept(opts.onAccept)
+    self:onChange(opts.onChange or onChangeFZY)
 end
 function Selector.prototype.onChange(self, fn)
-    self.input:onChange(fn)
+    self.input:onChange(function(____, input)
+        fn(nil, self, input)
+    end)
 end
 function Selector.prototype.onDidClose(self, fn)
     self:on("didClose", fn)
 end
-function Selector.prototype.onAccept(self, fn)
+function Selector.prototype.onAccept(self, callback)
+    local fn = type(callback) == "function" and callback or (function(____, entry)
+        vim.cmd((callback .. " ") .. entry.text)
+    end)
     self:on("accept", fn)
 end
 function Selector.prototype.accept(self)
@@ -3114,14 +3173,37 @@ function Selector.prototype.select(self, direction)
     self.focus.y = self.activeIndex * self.entryHeight
     self:render()
 end
+function Selector.prototype.setInitialEntries(self, entries)
+    self.didInit = true
+    self.initialEntries = entries
+    self:setEntries(self.initialEntries)
+end
+function Selector.prototype.drawMessage(self, message)
+    local style = __TS__New(
+        TextStyle,
+        {
+            fill = editor:getHighlight("comment").foreground or 16777215,
+            fontSize = settings.DEFAULT_FONT_SIZE
+        }
+    )
+    local textEntry = self.container:addChild(__TS__New(Text, message, style))
+    textEntry.y = 0.5 * cellPixels.height
+    textEntry.x = self.textPaddingX
+end
 function Selector.prototype.setEntries(self, entries)
+    local isEmpty = #entries == 0
     self.entries = entries
-    self.activeIndex = #entries > 0 and 0 or -1
+    self.activeIndex = not isEmpty and 0 or -1
     local cw = cellPixels.width
     local ch = cellPixels.height
     local container = self.container
     while #container.children > 0 do
         container:removeChildAt(0)
+    end
+    if isEmpty then
+        self:drawMessage(self.didInit and "No results" or "Loading entries...")
+        self:render()
+        return
     end
     local ____self_opts_10 = self.opts
     local hasIcon = ____self_opts_10.hasIcon
@@ -3129,7 +3211,7 @@ function Selector.prototype.setEntries(self, entries)
     local function yForIndex(____, i)
         return i * self.entryHeight
     end
-    if self.activeIndex ~= -1 then
+    if not isEmpty then
         local ____temp_11 = container:addChild(__TS__New(Graphics))
         self.focus = ____temp_11
         local focus = ____temp_11
@@ -3138,13 +3220,11 @@ function Selector.prototype.setEntries(self, entries)
         bg:beginFill(COLOR.FOCUS)
         bg:drawRect(0 - 5, 0, self.width + 10, self.entryHeight)
     end
-    local iconWidth = hasIcon and (singleLine and 2 * cw or 1.5 * cw) or 0
-    local textPaddingX = self.paddingX + iconWidth
     local i = 0
     for ____, entry in ipairs(entries) do
         local line = container:addChild(__TS__New(Container))
         line.y = yForIndex(nil, i)
-        local currentX = textPaddingX
+        local currentX = self.paddingX
         if hasIcon then
             if entry.icon then
                 local style = self.labelStyle:clone()
@@ -3161,7 +3241,7 @@ function Selector.prototype.setEntries(self, entries)
                 textIcon.x = singleLine and currentX or 1.5 * cw
                 textIcon.y = singleLine and 0 or 0.8 * ch
             end
-            currentX = currentX + iconWidth
+            currentX = currentX + self.iconWidth
         end
         do
             local label = entry.label
@@ -3176,7 +3256,7 @@ function Selector.prototype.setEntries(self, entries)
             local textEntry = line:addChild(__TS__New(Text, details, self.detailsStyle))
             if not singleLine then
                 textEntry.y = 1.5 * ch
-                textEntry.x = textPaddingX + iconWidth
+                textEntry.x = self.textPaddingX
             else
                 textEntry.y = 0.5 * ch
                 textEntry.x = currentX
@@ -3248,76 +3328,41 @@ local function getDetailsHighlightStyles(self, baseStyle)
 end
 return ____exports
  end,
+["types"] = function(...) 
+--[[ Generated with https://github.com/TypeScriptToLua/TypeScriptToLua ]]
+local ____exports = {}
+return ____exports
+ end,
 ["index"] = function(...) 
 local ____lualib = require("lualib_bundle")
-local __TS__ArrayMap = ____lualib.__TS__ArrayMap
 local __TS__New = ____lualib.__TS__New
-local __TS__ArrayForEach = ____lualib.__TS__ArrayForEach
-local __TS__ArrayFilter = ____lualib.__TS__ArrayFilter
-local __TS__ArraySort = ____lualib.__TS__ArraySort
 local __TS__ObjectKeys = ____lualib.__TS__ObjectKeys
 local __TS__StringTrim = ____lualib.__TS__StringTrim
 local __TS__StringSplit = ____lualib.__TS__StringSplit
+local __TS__ArrayMap = ____lualib.__TS__ArrayMap
+local __TS__ArraySort = ____lualib.__TS__ArraySort
 local ____exports = {}
-local fzy = require("fzy-lua-native")
 local ____path = require("path.index")
 local path = ____path.default
 local ____icons = require("icons")
 local getIcon = ____icons.getIcon
 local ____Selector = require("components.Selector")
 local Selector = ____Selector.Selector
+local ____pick = require("pick")
+local getEntries = ____pick.getEntries
+local onChangeFZY = ____pick.onChangeFZY
 ____exports.selector = nil
 ____exports.pickers = {}
 local fileCommand = vim.fn.executable("fd") ~= 0 and "fd -t f" or "git ls-files"
 function ____exports.open(opts, ...)
-    local entries
-    if opts.values ~= nil then
-        local valuesOpt = opts.values
-        local values = type(valuesOpt) == "function" and valuesOpt(...) or valuesOpt
-        entries = __TS__ArrayMap(
-            values,
-            function(____, v) return {label = v, text = v, value = v} end
-        )
-    else
-        local entriesOpt = opts.entries
-        entries = type(entriesOpt) == "function" and entriesOpt(...) or entriesOpt
-    end
-    local onAccept = type(opts.onAccept) == "function" and opts.onAccept or (function(____, entry)
-        vim.cmd((tostring(opts.onAccept) .. " ") .. entry.text)
-    end)
+    local args = {...}
     local ____opt_0 = ____exports.selector
     if ____opt_0 ~= nil then
         ____exports.selector:close()
     end
     ____exports.selector = __TS__New(Selector, opts)
-    ____exports.selector:setEntries(entries)
-    ____exports.selector:onChange(function(____, input)
-        local sensitive = input ~= string.lower(input)
-        local filtered = __TS__ArrayFilter(
-            entries,
-            function(____, e, i)
-                local hasMatch = fzy.has_match(input, e.text, sensitive)
-                if hasMatch then
-                    e.score = fzy.score(input, e.text, sensitive)
-                    e.positions = fzy.positions(input, e.text, sensitive)
-                    __TS__ArrayForEach(
-                        e.positions,
-                        function(____, _, i)
-                            local ____e_positions_2, ____temp_3 = e.positions, i + 1
-                            ____e_positions_2[____temp_3] = ____e_positions_2[____temp_3] - 1
-                        end
-                    )
-                end
-                return hasMatch
-            end
-        )
-        __TS__ArraySort(
-            filtered,
-            function(____, a, b) return (b.score or 0) - (a.score or 0) end
-        )
-        ____exports.selector:setEntries(filtered)
-    end)
-    ____exports.selector:onAccept(onAccept)
+    ____exports.selector:setInitialEntries(getEntries(nil, opts, args))
+    ____exports.selector:onChange(onChangeFZY)
     ____exports.selector:onDidClose(function()
         ____exports.selector = nil
     end)
@@ -3326,8 +3371,8 @@ function ____exports.listPickers(self)
     return __TS__ObjectKeys(____exports.pickers)
 end
 function ____exports.close(self)
-    local ____opt_4 = ____exports.selector
-    if ____opt_4 ~= nil then
+    local ____opt_2 = ____exports.selector
+    if ____opt_2 ~= nil then
         ____exports.selector:close()
     end
     ____exports.selector = nil
@@ -3362,9 +3407,9 @@ ____exports.register(
                 ),
                 function(____, line)
                     local parsed = path:parse(line)
-                    local ____getIcon_result_6 = getIcon(nil, parsed.base, parsed.ext)
-                    local icon = ____getIcon_result_6.icon
-                    local color = ____getIcon_result_6.color
+                    local ____getIcon_result_4 = getIcon(nil, parsed.base, parsed.ext)
+                    local icon = ____getIcon_result_4.icon
+                    local color = ____getIcon_result_4.color
                     local directory = __TS__StringTrim(parsed.dir)
                     if not directory or directory == "" then
                         directory = "."
