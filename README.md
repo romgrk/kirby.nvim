@@ -23,6 +23,7 @@ It also has the following hard dependencies that you need to ensure.
     { 'romgrk/fzy-lua-native', build = 'make install' },
     { 'romgrk/kui.nvim' },
     { 'nvim-tree/nvim-web-devicons' },
+    { 'nvim-lua/plenary.nvim' },
   },
 },
 ```
