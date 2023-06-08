@@ -87,7 +87,8 @@ const diagnostics: Picker = {
   entries: function(this: void) {
     return getDiagnostics()
   },
-  onAccept: (entry: Entry) => {
+  onAccept: (entry?: Entry) => {
+    if (!entry) return
     const d = entry.data as Diagnostic
     vim.cmd(`edit ${d.file}`)
     vim.cmd('normal! zz')
@@ -142,7 +143,8 @@ const workspaceSymbols: Picker = {
     const symbols = getSymbols(input)
     selector.setEntries(symbols)
   },
-  onAccept: (entry: Entry) => {
+  onAccept: (entry?: Entry) => {
+    if (!entry) return
     const symbol = entry.data as Symbol
     vim.cmd(`edit ${symbol.location.uri.slice(7)}`)
     vim.cmd('normal! zz')

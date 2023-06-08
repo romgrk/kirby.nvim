@@ -53,7 +53,7 @@ const currentFile: Picker = {
         const [key] = cur.split(':')
         acc[key] = cur.split(':').slice(1).join(':')
         return acc
-      }, {} as Record<string, string>)
+      }, {} as Record<string, string | undefined>)
 
       let scope = undefined as string | undefined
       if (fields.scope) {
@@ -64,14 +64,14 @@ const currentFile: Picker = {
       const text = symbol
       const details = `${fields.line}: ${code}`
       return {
-        icon: getIcon(fields.kind),
+        icon: getIcon(fields.kind!),
         iconColor: getColor(HIGHLIGHT_BY_TYPE[fields.kind as string]),
         label: text,
         details: details,
         text: text,
         value: text,
         data: {
-          lineNumber: parseInt(fields.line),
+          lineNumber: parseInt(fields.line!),
           columnNumber,
         },
       }
@@ -79,7 +79,8 @@ const currentFile: Picker = {
     entries.sort((a, b) => { return a.data.lineNumber - b.data.lineNumber })
     return entries
   },
-  onAccept: (entry: Entry) => {
+  onAccept: (entry: Entry | undefined) => {
+    if (!entry) return
     vim.api.nvim_win_set_cursor(0, [entry.data.lineNumber, entry.data.columnNumber])
     vim.cmd('normal! zz')
   },

@@ -181,8 +181,8 @@ export class Selector extends EventEmitter<Events> {
   onAccept(callback: string | AcceptFn) {
     const fn =
       typeof callback === 'function' ?
-        (entry: Entry) => { callback(entry, this.args) } :
-        (entry: Entry) => { vim.cmd(`${callback} ${entry.text}`) }
+        (entry: Entry | undefined) => { callback(entry, this.args) } :
+        (entry: Entry | undefined) => { vim.cmd(`${callback} ${entry?.text ?? ''}`) }
 
     this.on('accept', fn)
   }
@@ -201,8 +201,7 @@ export class Selector extends EventEmitter<Events> {
   accept() {
     this.close()
     const entry = this.entries[this.activeIndex]
-    if (entry !== undefined)
-      this.emit('accept', entry)
+    this.emit('accept', entry)
   }
 
   select(direction: number) {
@@ -243,24 +242,73 @@ export class Selector extends EventEmitter<Events> {
     textEntry.x = this.textPaddingX
   }
 
-  setEntries(entries: Entry[]) {
-    const isEmpty = entries.length === 0
-    this.entries = entries
-    this.activeIndex = !isEmpty ? 0 : -1
-
-    const cw = cellPixels.width
-    const ch = cellPixels.height
-
+  clear() {
     const container = this.container
     while (container.children.length > 0) {
       container.removeChildAt(0)
     }
+  }
 
+  setMessage(message: string) {
+    this.clear()
+    this.drawMessage(message)
+    this.render()
+  }
+
+  setLines(lines: string[]) {
+    this.clear()
+
+    const container = this.container
+    const ch = cellPixels.height
+
+    const yForIndex = (i: number) => i * ch + 0.5 * ch
+
+    {
+      const separator = container.addChild(new Graphics())
+      separator.x = 0
+      separator.y = 0
+      separator.lineStyle(2, this.separatorColor, 0.5)
+      separator.moveTo(0, 0)
+      separator.lineTo(this.width, 0)
+    }
+
+    const style =  this.labelStyle.clone()
+    style.fontSize = settings.DEFAULT_FONT_SIZE * 0.8
+
+    lines.forEach((line, i) => {
+      const text = container.addChild(new Text(line, style))
+      text.y = yForIndex(i)
+      text.x = this.paddingX
+    })
+
+    {
+      const separator = container.addChild(new Graphics())
+      separator.x = 0
+      separator.y = yForIndex(lines.length)
+      separator.lineStyle(2, this.separatorColor, 0.5)
+      separator.moveTo(0, 0)
+      separator.lineTo(this.width, 0)
+    }
+
+    this.render()
+  }
+
+  setEntries(entries: Entry[]) {
+    this.clear()
+
+    const isEmpty = entries.length === 0
     if (isEmpty) {
       this.drawMessage(this.didInit ? 'No results' : 'Loading entries...')
       this.render()
       return
     }
+
+    this.entries = entries
+    this.activeIndex = !isEmpty ? 0 : -1
+
+    const container = this.container
+    const cw = cellPixels.width
+    const ch = cellPixels.height
 
     const { hasIcon, singleLine, detailsAlign } = this.opts
     const alignDetailsRight = detailsAlign === 'right'

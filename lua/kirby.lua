@@ -2618,6 +2618,7 @@ local __TS__ClassExtends = ____lualib.__TS__ClassExtends
 local __TS__ObjectAssign = ____lualib.__TS__ObjectAssign
 local __TS__New = ____lualib.__TS__New
 local __TS__SetDescriptor = ____lualib.__TS__SetDescriptor
+local __TS__ArrayForEach = ____lualib.__TS__ArrayForEach
 local __TS__ParseInt = ____lualib.__TS__ParseInt
 local __TS__ArrayMap = ____lualib.__TS__ArrayMap
 local ____exports = {}
@@ -2823,7 +2824,7 @@ function Selector.prototype.onAccept(self, callback)
     local fn = type(callback) == "function" and (function(____, entry)
         callback(entry, self.args)
     end) or (function(____, entry)
-        vim.cmd((callback .. " ") .. entry.text)
+        vim.cmd((callback .. " ") .. (entry and entry.text or ""))
     end)
     self:on("accept", fn)
 end
@@ -2831,26 +2832,24 @@ function Selector.prototype.render(self)
     self.renderer:render(self.stage)
 end
 function Selector.prototype.close(self)
-    local ____opt_9 = self.input
-    if ____opt_9 ~= nil then
-        ____opt_9:destroy()
-    end
-    local ____opt_11 = self.stage
+    local ____opt_11 = self.input
     if ____opt_11 ~= nil then
         ____opt_11:destroy()
     end
-    local ____opt_13 = self.renderer
+    local ____opt_13 = self.stage
     if ____opt_13 ~= nil then
         ____opt_13:destroy()
+    end
+    local ____opt_15 = self.renderer
+    if ____opt_15 ~= nil then
+        ____opt_15:destroy()
     end
     self:emit("didClose")
 end
 function Selector.prototype.accept(self)
     self:close()
     local entry = self.entries[self.activeIndex + 1]
-    if entry ~= nil then
-        self:emit("accept", entry)
-    end
+    self:emit("accept", entry)
 end
 function Selector.prototype.select(self, direction)
     if self.activeIndex == -1 or not self.focus then
@@ -2883,33 +2882,77 @@ function Selector.prototype.drawMessage(self, message)
     textEntry.y = 0.5 * cellPixels.height
     textEntry.x = self.textPaddingX
 end
-function Selector.prototype.setEntries(self, entries)
-    local isEmpty = #entries == 0
-    self.entries = entries
-    self.activeIndex = not isEmpty and 0 or -1
-    local cw = cellPixels.width
-    local ch = cellPixels.height
+function Selector.prototype.clear(self)
     local container = self.container
     while #container.children > 0 do
         container:removeChildAt(0)
     end
+end
+function Selector.prototype.setMessage(self, message)
+    self:clear()
+    self:drawMessage(message)
+    self:render()
+end
+function Selector.prototype.setLines(self, lines)
+    self:clear()
+    local container = self.container
+    local ch = cellPixels.height
+    local function yForIndex(____, i)
+        return i * ch + 0.5 * ch
+    end
+    do
+        local separator = container:addChild(__TS__New(Graphics))
+        separator.x = 0
+        separator.y = 0
+        separator:lineStyle(2, self.separatorColor, 0.5)
+        separator:moveTo(0, 0)
+        separator:lineTo(self.width, 0)
+    end
+    local style = self.labelStyle:clone()
+    style.fontSize = settings.DEFAULT_FONT_SIZE * 0.8
+    __TS__ArrayForEach(
+        lines,
+        function(____, line, i)
+            local text = container:addChild(__TS__New(Text, line, style))
+            text.y = yForIndex(nil, i)
+            text.x = self.paddingX
+        end
+    )
+    do
+        local separator = container:addChild(__TS__New(Graphics))
+        separator.x = 0
+        separator.y = yForIndex(nil, #lines)
+        separator:lineStyle(2, self.separatorColor, 0.5)
+        separator:moveTo(0, 0)
+        separator:lineTo(self.width, 0)
+    end
+    self:render()
+end
+function Selector.prototype.setEntries(self, entries)
+    self:clear()
+    local isEmpty = #entries == 0
     if isEmpty then
         self:drawMessage(self.didInit and "No results" or "Loading entries...")
         self:render()
         return
     end
-    local ____self_opts_15 = self.opts
-    local hasIcon = ____self_opts_15.hasIcon
-    local singleLine = ____self_opts_15.singleLine
-    local detailsAlign = ____self_opts_15.detailsAlign
+    self.entries = entries
+    self.activeIndex = not isEmpty and 0 or -1
+    local container = self.container
+    local cw = cellPixels.width
+    local ch = cellPixels.height
+    local ____self_opts_17 = self.opts
+    local hasIcon = ____self_opts_17.hasIcon
+    local singleLine = ____self_opts_17.singleLine
+    local detailsAlign = ____self_opts_17.detailsAlign
     local alignDetailsRight = detailsAlign == "right"
     local function yForIndex(____, i)
         return i * self.entryHeight
     end
     if not isEmpty then
-        local ____temp_16 = container:addChild(__TS__New(Graphics))
-        self.focus = ____temp_16
-        local focus = ____temp_16
+        local ____temp_18 = container:addChild(__TS__New(Graphics))
+        self.focus = ____temp_18
+        local focus = ____temp_18
         focus.y = yForIndex(nil, self.activeIndex)
         local bg = focus:addChild(__TS__New(Graphics))
         bg:beginFill(COLOR.FOCUS)
@@ -3510,6 +3553,99 @@ ____exports.default = {
 }
 return ____exports
  end,
+["utils.job"] = function(...) 
+--[[ Generated with https://github.com/TypeScriptToLua/TypeScriptToLua ]]
+local ____exports = {}
+local Job = require("plenary.job")
+____exports.default = Job
+return ____exports
+ end,
+["pickers.howdoi"] = function(...) 
+local ____lualib = require("lualib_bundle")
+local __TS__StringSplit = ____lualib.__TS__StringSplit
+local __TS__New = ____lualib.__TS__New
+local ____exports = {}
+local ____kui = require("kui")
+local Timer = ____kui.Timer
+local ____job = require("utils.job")
+local Job = ____job.default
+local timer = nil
+local job = nil
+local answers = {}
+local lastInput = ""
+local howdoi = {
+    id = "howdoi",
+    prefix = "󰠗",
+    prefixColor = "question",
+    hasIcon = false,
+    singleLine = true,
+    detailsAlign = "right",
+    entries = function()
+        return {}
+    end,
+    onChange = function(selector, input)
+        if job ~= nil then
+            job:shutdown()
+        end
+        job = nil
+        lastInput = input
+        if input == "" then
+            selector:setMessage("Type your query")
+            return
+        end
+        if timer ~= nil then
+            timer:stop()
+        end
+        timer = __TS__New(
+            Timer,
+            200,
+            function()
+                local ____self
+                job = Job:new({
+                    command = "howdoi",
+                    args = {"--json", input},
+                    on_exit = vim.schedule_wrap(function(____, code)
+                        job = nil
+                        if code ~= 0 then
+                            return
+                        end
+                        local data = table.concat(
+                            ____self:result(),
+                            ""
+                        )
+                        answers = vim.json.decode(data)
+                        local answer = answers[1]
+                        if not answer then
+                            selector:setMessage("No result found")
+                        else
+                            selector:setLines(__TS__StringSplit(answer.answer, "\n"))
+                        end
+                    end)
+                })
+                ____self = job
+                job:start()
+            end
+        )
+        selector:setMessage("Loading...")
+    end,
+    onAccept = function()
+        local answer = answers[1]
+        if not answer then
+            return
+        end
+        local currentLine = vim.fn.getpos(".")[2] - 1
+        vim.api.nvim_buf_set_lines(
+            0,
+            currentLine + 1,
+            currentLine + 1,
+            false,
+            __TS__StringSplit(answer.answer, "\n")
+        )
+    end
+}
+____exports.default = howdoi
+return ____exports
+ end,
 ["pickers.commands"] = function(...) 
 local ____lualib = require("lualib_bundle")
 local __TS__ObjectValues = ____lualib.__TS__ObjectValues
@@ -3730,7 +3866,7 @@ local currentFile = {
                 end
                 local symbol = scope and (scope .. " ") .. name or name
                 local text = symbol
-                local details = (fields.line .. ": ") .. code
+                local details = (tostring(fields.line) .. ": ") .. code
                 return {
                     icon = getIcon(nil, fields.kind),
                     iconColor = getColor(nil, HIGHLIGHT_BY_TYPE[fields.kind]),
@@ -3754,6 +3890,9 @@ local currentFile = {
         return entries
     end,
     onAccept = function(entry)
+        if not entry then
+            return
+        end
         vim.api.nvim_win_set_cursor(0, {entry.data.lineNumber, entry.data.columnNumber})
         vim.cmd("normal! zz")
     end
@@ -3813,6 +3952,9 @@ local diagnostics = {
         return getDiagnostics(nil)
     end,
     onAccept = function(entry)
+        if not entry then
+            return
+        end
         local d = entry.data
         vim.cmd("edit " .. d.file)
         vim.cmd("normal! zz")
@@ -3863,6 +4005,9 @@ local workspaceSymbols = {
         selector:setEntries(symbols)
     end,
     onAccept = function(entry)
+        if not entry then
+            return
+        end
         local symbol = entry.data
         vim.cmd("edit " .. string.sub(symbol.location.uri, 8))
         vim.cmd("normal! zz")
@@ -3878,6 +4023,8 @@ local ____exports = {}
 local api = require("api")
 local ____files = require("pickers.files")
 local files = ____files.default
+local ____howdoi = require("pickers.howdoi")
+local howdoi = ____howdoi.default
 local ____commands = require("pickers.commands")
 local commands = ____commands.default
 local ____ctags = require("pickers.ctags")
@@ -3893,6 +4040,7 @@ do
     end
 end
 api.register(files)
+api.register(howdoi)
 api.register(commands.list)
 api.register(commands.run)
 api.register(ctags.currentFile)

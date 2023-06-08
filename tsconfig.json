@@ -12,6 +12,7 @@
       "kui.nvim/types/kui",
       "kui.nvim/types/cairo",
       "kui.nvim/types/vim",
+      "./types/plenary",
       "./types/fzy-lua-native",
       "./types/nvim-web-devicons"
     ],
@@ -28,6 +29,7 @@
     "noResolvePaths": [
       "bit",
       "kui",
+      "plenary.job",
       "fzy-lua-native",
       "nvim-web-devicons"
     ]

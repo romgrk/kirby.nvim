@@ -57,6 +57,10 @@ Run a vim command.
 
 ![demo](./assets/picker-commands-run.png)
 
+#### `Kirby howdoi`
+
+Copy/paste from stackoverflow. Require [howdoi](https://github.com/gleitz/howdoi)
+
 #### `Kirby coc-diagnostics`
 
 Diagnostics via coc.nvim
