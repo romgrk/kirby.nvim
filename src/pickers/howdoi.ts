@@ -15,8 +15,8 @@ type Answer = {
 
 const howdoi: Picker = {
   id: 'howdoi',
-  prefix: '󰠗',
-  prefixColor: 'question',
+  prefix: 'howdoi ',
+  prefixColor: 0xf48225,
   hasIcon: false,
   singleLine: true,
   detailsAlign: 'right',
