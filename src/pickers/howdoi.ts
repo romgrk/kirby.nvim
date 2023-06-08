@@ -45,7 +45,7 @@ const howdoi: Picker = {
           }
 
           const data = self.result().join('')
-          answers = vim.json.decode(data) as Answer[]
+          answers = data.startsWith('ERROR:') ? [] : vim.json.decode(data) as Answer[]
           const answer = answers[0]
 
           if (!answer) {
