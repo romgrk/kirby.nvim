@@ -3562,6 +3562,7 @@ return ____exports
  end,
 ["pickers.howdoi"] = function(...) 
 local ____lualib = require("lualib_bundle")
+local __TS__StringStartsWith = ____lualib.__TS__StringStartsWith
 local __TS__StringSplit = ____lualib.__TS__StringSplit
 local __TS__New = ____lualib.__TS__New
 local ____exports = {}
@@ -3613,7 +3614,7 @@ local howdoi = {
                             ____self:result(),
                             ""
                         )
-                        answers = vim.json.decode(data)
+                        answers = __TS__StringStartsWith(data, "ERROR:") and ({}) or vim.json.decode(data)
                         local answer = answers[1]
                         if not answer then
                             selector:setMessage("No result found")
