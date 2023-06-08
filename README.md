@@ -59,15 +59,15 @@ Run a vim command.
 
 #### `Kirby howdoi`
 
-Copy/paste from stackoverflow. Require [howdoi](https://github.com/gleitz/howdoi)
+Copy/paste from stackoverflow. Requires [howdoi](https://github.com/gleitz/howdoi).
 
 #### `Kirby coc-diagnostics`
 
-Diagnostics via coc.nvim
+Diagnostics via coc.nvim.
 
 #### `Kirby coc-workspaces-symbols`
 
-Workspace symbols via coc.nvim
+Workspace symbols via coc.nvim.
 
 ## Adding pickers
 
