@@ -1,5 +1,6 @@
-import { editor } from 'kui'
+import { editor, Timer } from 'kui'
 import type { Entry, Picker } from '../types'
+import { fuzzyMatch } from '../pick'
 
 type Location = {
   uri: string, // "file:///home/romgrk/.config/coc/extensions/node_modules/coc-sumneko-lua/nvim_lua_types/api.lua"
@@ -107,14 +108,26 @@ type Symbol = {
   source: string,
 }
 
+// The list is too big to pass between vimscript & lua efficiently, we only select a few symbols
+// to improve the latency.
+vim.cmd(`
+function Kirby__coc_workspace_symbols(input, buffer)
+  let symbols = CocAction('getWorkspaceSymbols', a:input, a:buffer)
+  if empty(symbols)
+    return []
+  end
+  return slice(symbols, 0, 50)
+endfunction
+`)
+
 function getSymbols(input: string) {
   let buffer = vim.fn.bufnr('%')
   if (!vim.api.nvim_buf_get_option(buffer, 'buflisted')) {
     buffer = vim.fn.bufnr('#')
   }
 
-  const fn = (vim.fn as any)['CocAction'] as (this: void, ...args: any[]) => Symbol[] | null
-  const symbols = (fn('getWorkspaceSymbols', input, buffer) ?? []).slice(0, 20)
+  const fn = (vim.fn as any)['Kirby__coc_workspace_symbols'] as (this: void, ...args: any) => Symbol[]
+  const symbols = fn(input, buffer)
 
   return symbols.map(symbol => {
     const line = symbol.location.range.start.line
@@ -129,6 +142,8 @@ function getSymbols(input: string) {
   })
 }
 
+let timer = null as Timer | null
+
 const workspaceSymbols: Picker = {
   id: 'coc-workspace-symbols',
   prefix: 'Jump to ',
@@ -140,8 +155,11 @@ const workspaceSymbols: Picker = {
     return getSymbols('')
   },
   onChange: (selector, input) => {
-    const symbols = getSymbols(input)
-    selector.setEntries(symbols)
+    timer?.stop()
+    timer = new Timer(50, () => {
+      const symbols = fuzzyMatch(getSymbols(input), input)
+      selector.setEntries(symbols)
+    })
   },
   onAccept: (entry?: Entry) => {
     if (!entry) return

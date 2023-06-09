@@ -3904,10 +3904,13 @@ return ____exports
 ["pickers.coc"] = function(...) 
 local ____lualib = require("lualib_bundle")
 local __TS__ArrayMap = ____lualib.__TS__ArrayMap
-local __TS__ArraySlice = ____lualib.__TS__ArraySlice
+local __TS__New = ____lualib.__TS__New
 local ____exports = {}
 local ____kui = require("kui")
 local editor = ____kui.editor
+local Timer = ____kui.Timer
+local ____pick = require("pick")
+local fuzzyMatch = ____pick.fuzzyMatch
 local ICON_BY_SEVERITY = {Error = "", Warning = "", Information = "", Hint = ""}
 local COLOR_BY_SEVERITY = {Error = "CocErrorSign", Warning = "CocWarningSign", Information = "CocInfoSign", Hint = "CocHintSign"}
 local function getDiagnostics(self)
@@ -3962,17 +3965,14 @@ local diagnostics = {
         vim.api.nvim_win_set_cursor(0, {d.location.range.start.line + 1, d.location.range.start.character})
     end
 }
+vim.cmd("\nfunction Kirby__coc_workspace_symbols(input, buffer)\n  let symbols = CocAction('getWorkspaceSymbols', a:input, a:buffer)\n  if empty(symbols)\n    return []\n  end\n  return slice(symbols, 0, 50)\nendfunction\n")
 local function getSymbols(self, input)
     local buffer = vim.fn.bufnr("%")
     if not vim.api.nvim_buf_get_option(buffer, "buflisted") then
         buffer = vim.fn.bufnr("#")
     end
-    local fn = vim.fn.CocAction
-    local symbols = __TS__ArraySlice(
-        fn("getWorkspaceSymbols", input, buffer) or ({}),
-        0,
-        20
-    )
+    local fn = vim.fn.Kirby__coc_workspace_symbols
+    local symbols = fn(input, buffer)
     return __TS__ArrayMap(
         symbols,
         function(____, symbol)
@@ -3991,6 +3991,7 @@ local function getSymbols(self, input)
         end
     )
 end
+local timer = nil
 local workspaceSymbols = {
     id = "coc-workspace-symbols",
     prefix = "Jump to ",
@@ -4002,8 +4003,21 @@ local workspaceSymbols = {
         return getSymbols(nil, "")
     end,
     onChange = function(selector, input)
-        local symbols = getSymbols(nil, input)
-        selector:setEntries(symbols)
+        if timer ~= nil then
+            timer:stop()
+        end
+        timer = __TS__New(
+            Timer,
+            50,
+            function()
+                local symbols = fuzzyMatch(
+                    nil,
+                    getSymbols(nil, input),
+                    input
+                )
+                selector:setEntries(symbols)
+            end
+        )
     end,
     onAccept = function(entry)
         if not entry then
