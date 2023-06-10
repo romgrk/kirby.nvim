@@ -3777,8 +3777,10 @@ return ____exports
  end,
 ["pickers.ctags"] = function(...) 
 local ____lualib = require("lualib_bundle")
+local __TS__StringStartsWith = ____lualib.__TS__StringStartsWith
 local __TS__StringTrim = ____lualib.__TS__StringTrim
 local __TS__StringSplit = ____lualib.__TS__StringSplit
+local __TS__ArrayFilter = ____lualib.__TS__ArrayFilter
 local __TS__StringTrimStart = ____lualib.__TS__StringTrimStart
 local __TS__ArraySlice = ____lualib.__TS__ArraySlice
 local __TS__ArrayReduce = ____lualib.__TS__ArrayReduce
@@ -3817,9 +3819,12 @@ local currentFile = {
         if not file or file == "" then
             return {}
         end
-        local lines = __TS__StringSplit(
-            __TS__StringTrim(vim.fn.system("ctags '--fields=*' -f- " .. file)),
-            "\n"
+        local lines = __TS__ArrayFilter(
+            __TS__StringSplit(
+                __TS__StringTrim(vim.fn.system("ctags '--fields=*' -f- " .. file)),
+                "\n"
+            ),
+            function(____, line) return not __TS__StringStartsWith(line, "ctags: Warning:") end
         )
         local colors = {}
         local function getColor(self, name)

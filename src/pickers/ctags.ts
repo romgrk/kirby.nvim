@@ -33,7 +33,9 @@ const currentFile: Picker = {
       return []
     }
 
-    const lines = vim.fn.system(`ctags '--fields=*' -f- ${file}`).trim().split('\n')
+    const lines =
+      vim.fn.system(`ctags '--fields=*' -f- ${file}`).trim().split('\n')
+        .filter(line => !line.startsWith('ctags: Warning:'))
     const colors = {} as Record<string, number>
     function getColor(name: string = 'comment') {
       colors[name] ??= editor.getHighlight(name).foreground ?? 0xffffff
